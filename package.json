@@ -1,0 +1,8 @@
+{
+  "name": "mapa-maiten",
+  "version": "1.0.0",
+  "description": "Mapa interactivo para barrio El Maitén",
+  "scripts": {
+    "start": "serve ."
+  }
+}
