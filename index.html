@@ -211,8 +211,8 @@
                 }
                 // Set gray fill on all paths immediately (they are transparent by default)
                 inner.querySelectorAll('path').forEach(p => {
-                    p.setAttribute('fill', '#c8d0d8');
-                    p.setAttribute('fill-opacity', '1');
+                    p.style.fill = '#c8d0d8';
+                    p.style.fillOpacity = '1';
                 });
                 escucharClicks();
                 cargarVotos();
@@ -227,8 +227,8 @@
 
             let si = 0, no = 0, nc = 0;
             document.querySelectorAll('#map-inner path').forEach(p => {
-                p.setAttribute('fill', '#c8d0d8');
-                p.setAttribute('fill-opacity', '1');
+                p.style.fill = '#c8d0d8';
+                p.style.fillOpacity = '1';
             });
 
             data.forEach(item => {
@@ -236,16 +236,16 @@
                 if (el) {
                     const v = (item.voto || '').toUpperCase();
                     if (v === 'SI') {
-                        el.setAttribute('fill', '#2ecc71');
-                        el.setAttribute('fill-opacity', '1');
+                        el.style.fill = '#2ecc71';
+                        el.style.fillOpacity = '1';
                         si++;
                     } else if (v === 'NO') {
-                        el.setAttribute('fill', '#ff4136');
-                        el.setAttribute('fill-opacity', '1');
+                        el.style.fill = '#ff4136';
+                        el.style.fillOpacity = '1';
                         no++;
                     } else {
-                        el.setAttribute('fill', '#c8d0d8');
-                        el.setAttribute('fill-opacity', '1');
+                        el.style.fill = '#c8d0d8';
+                        el.style.fillOpacity = '1';
                         nc++;
                     }
                 }
