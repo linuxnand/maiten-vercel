@@ -41,17 +41,12 @@
             gap: 14px;
             flex-wrap: wrap;
         }
+        /* FIX 1: pct same size as number, in parentheses, no bubble */
         .stat-si  { color: #2ecc71; }
         .stat-no  { color: #e74c3c; }
         .stat-nc  { color: #bdc3c7; }
-        .stat-val { color: white; }
-        .stat-pct {
-            color: white;
-            background: rgba(255,255,255,0.18);
-            border-radius: 4px;
-            padding: 1px 5px;
-            font-size: 0.8em;
-        }
+        .stat-val { color: white; font-size: 0.95rem; }
+        .stat-pct { color: white; font-size: 0.95rem; }
 
         /* ── MAP AREA ── */
         #map-container {
@@ -59,14 +54,13 @@
             overflow: hidden;
             position: relative;
             background: #f0f2f5;
+            /* FIX 3: pointer events on container must not block path clicks */
         }
         #map-inner {
             transform-origin: 0 0;
-            cursor: grab;
-            width: 100%;
+            /* do NOT set pointer-events:none here */
         }
-        #map-inner:active { cursor: grabbing; }
-        svg { width: 100%; height: auto; display: block; }
+        svg { display: block; }
         path { cursor: pointer; transition: fill 0.2s; stroke: #333; stroke-width: 0.5px; }
         path:hover { opacity: 0.75; }
         .lote-si { fill: #2ecc71 !important; }
@@ -84,32 +78,87 @@
             z-index: 1000;
             padding: 20px;
         }
+        /* FIX 6: dark card style like the screenshot */
         .modal-content {
-            background: white;
+            background: #2b2b3b;
             padding: 22px 20px 18px;
             border-radius: 14px;
             width: 100%;
             max-width: 380px;
+            color: #ccc;
         }
-        .modal-content h2 { font-size: 1.1rem; margin-bottom: 4px; color: #222; }
-        #lote-info { font-size: 0.85rem; color: #666; margin-bottom: 12px; min-height: 18px; }
+        /* FIX 5: no lote title shown */
+        .modal-content .field-label {
+            font-size: 0.8rem;
+            color: #8a8aaa;
+            margin-bottom: 4px;
+            margin-top: 10px;
+        }
+        .modal-content .field-label:first-child { margin-top: 0; }
         input {
             width: 100%;
             padding: 10px 12px;
-            margin-bottom: 10px;
-            border: 1px solid #ddd;
+            border: none;
             border-radius: 8px;
             font-size: 1rem;
+            background: #3a3a4e;
+            color: white;
         }
-        /* SÍ | NO | NC on one row */
-        .btns-main {
+        input::placeholder { color: #666; }
+
+        /* dropdown styled like screenshot */
+        .select-wrap {
+            position: relative;
+            margin-top: 4px;
+        }
+        .select-wrap select {
+            width: 100%;
+            padding: 10px 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            background: #3a3a4e;
+            color: white;
+            appearance: none;
+            cursor: pointer;
+        }
+        .select-wrap::after {
+            content: '▾';
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #aaa;
+            pointer-events: none;
+        }
+
+        /* FIX 7: bottom row = Guardar + Cancelar side by side, no popup */
+        .btns-bottom {
             display: flex;
             gap: 8px;
-            margin-bottom: 8px;
+            margin-top: 16px;
         }
-        .btns-main button {
+        .btns-bottom button {
             flex: 1;
             padding: 12px 6px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+        .btn-guardar { background: #2ecc71; color: white; }
+        .btn-cancel  { background: #3a4a5e; color: #ccc; }
+
+        /* SÍ | NO | NC voting row — kept above */
+        .btns-vote {
+            display: flex;
+            gap: 8px;
+            margin-top: 14px;
+        }
+        .btns-vote button {
+            flex: 1;
+            padding: 11px 6px;
             border: none;
             border-radius: 8px;
             cursor: pointer;
@@ -119,18 +168,7 @@
         }
         .btn-si { background: #2ecc71; }
         .btn-no { background: #e74c3c; }
-        .btn-nc { background: #95a5a6; }
-        .btn-cancel {
-            width: 100%;
-            padding: 10px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.95rem;
-            font-weight: bold;
-            background: #e0e0e0;
-            color: #444;
-        }
+        .btn-nc { background: #7f8c8d; }
     </style>
 </head>
 <body>
@@ -144,18 +182,28 @@
         <div id="map-inner"></div>
     </div>
 
+    <!-- FIX 5+6+7: modal without lote title, dark style, guardar/cancelar row -->
     <div class="modal" id="modal">
         <div class="modal-content">
-            <h2 id="lote-titulo">Lote</h2>
-            <div id="lote-info"></div>
+            <div class="field-label">Nombre</div>
             <input type="text" id="nombre" placeholder="Nombre y Apellido">
-            <input type="tel"  id="telefono" placeholder="Teléfono">
-            <div class="btns-main">
-                <button class="btn-si" onclick="votar('SI')">SÍ</button>
-                <button class="btn-no" onclick="votar('NO')">NO</button>
-                <button class="btn-nc" onclick="votar('NC')">NC</button>
+
+            <div class="field-label">Teléfono</div>
+            <input type="tel" id="telefono" placeholder="Teléfono">
+
+            <div class="field-label">¿Quiere pavimento?</div>
+            <div class="select-wrap">
+                <select id="voto-select">
+                    <option value="NC">Sin respuesta</option>
+                    <option value="SI">Sí</option>
+                    <option value="NO">No</option>
+                </select>
             </div>
-            <button class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
+
+            <div class="btns-bottom">
+                <button class="btn-guardar" onclick="guardar()">💾 Guardar</button>
+                <button class="btn-cancel"  onclick="cerrarModal()">✕ Cancelar</button>
+            </div>
         </div>
     </div>
 
@@ -165,12 +213,26 @@
         const _supabase = window.supabase.createClient(SB_URL, SB_KEY);
 
         let seleccionado = null;
+        let isDragging = false; // track if user is panning so we don't open modal on drag
 
         // ── LOAD SVG ─────────────────────────────────────────────────
         fetch('mapa.svg')
             .then(r => { if (!r.ok) throw new Error("No se pudo cargar mapa.svg."); return r.text(); })
-            .then(data => {
-                document.getElementById('map-inner').innerHTML = data;
+            .then(svgText => {
+                const inner = document.getElementById('map-inner');
+                inner.innerHTML = svgText;
+
+                // FIX 2: scale SVG to fit container height on load
+                const svg = inner.querySelector('svg');
+                if (svg) {
+                    svg.removeAttribute('width');
+                    svg.removeAttribute('height');
+                    svg.style.width  = 'auto';
+                    svg.style.height = '100%';
+                    svg.style.display = 'block';
+                    svg.style.maxHeight = '100%';
+                }
+
                 escucharClicks();
                 cargarVotos();
                 initZoom();
@@ -199,101 +261,130 @@
             const pctSi = total ? Math.round(si / total * 100) : 0;
             const pctNo = total ? Math.round(no / total * 100) : 0;
 
+            // FIX 1: same size, parentheses
             document.getElementById('stats').innerHTML =
-                `<span class="stat-si">SÍ: <span class="stat-val">${si}</span> <span class="stat-pct">${pctSi}%</span></span>` +
-                `<span class="stat-no">NO: <span class="stat-val">${no}</span> <span class="stat-pct">${pctNo}%</span></span>` +
+                `<span class="stat-si">SÍ: <span class="stat-val">${si} <span class="stat-pct">(${pctSi}%)</span></span></span>` +
+                `<span class="stat-no">NO: <span class="stat-val">${no} <span class="stat-pct">(${pctNo}%)</span></span></span>` +
                 `<span class="stat-nc">NC: <span class="stat-val">${nc}</span></span>`;
         }
 
         // ── CLICKS ───────────────────────────────────────────────────
+        // FIX 3: use click event on paths directly (not on container),
+        //        and only open modal if user wasn't dragging
         function escucharClicks() {
             document.querySelectorAll('#map-inner path').forEach(p => {
-                p.onclick = async () => {
+                p.addEventListener('click', async (e) => {
+                    if (isDragging) return; // don't open on drag-release
                     if (!p.id) return;
+                    e.stopPropagation();
+
                     seleccionado = p.id;
-                    document.getElementById('lote-titulo').innerText = "Lote: " + p.id;
-                    document.getElementById('nombre').value = '';
+                    document.getElementById('nombre').value   = '';
                     document.getElementById('telefono').value = '';
-                    document.getElementById('lote-info').innerText = 'Cargando...';
+                    document.getElementById('voto-select').value = 'NC';
 
                     const { data } = await _supabase.from('votos').select('*').eq('lote_id', p.id).maybeSingle();
                     if (data) {
-                        const v = (data.voto || '').toUpperCase();
-                        const estado = v === 'SI' ? '🟢 SÍ' : v === 'NO' ? '🔴 NO' : '⚪ Sin respuesta';
-                        document.getElementById('lote-info').innerText =
-                            estado +
-                            (data.nombre   ? ' · ' + data.nombre   : '') +
-                            (data.telefono ? ' · ' + data.telefono : '');
                         if (data.nombre)   document.getElementById('nombre').value   = data.nombre;
                         if (data.telefono) document.getElementById('telefono').value = data.telefono;
-                    } else {
-                        document.getElementById('lote-info').innerText = 'Sin datos registrados';
+                        const v = (data.voto || '').toUpperCase();
+                        document.getElementById('voto-select').value = (v === 'SI' || v === 'NO') ? v : 'NC';
                     }
 
                     document.getElementById('modal').style.display = 'flex';
-                };
+                });
             });
         }
 
         function cerrarModal() { document.getElementById('modal').style.display = 'none'; }
 
-        async function votar(valor) {
+        // FIX 7: guardar silently, no alert
+        async function guardar() {
             const nombre = document.getElementById('nombre').value.trim();
             const tel    = document.getElementById('telefono').value.trim();
-            if (!nombre && valor !== 'NC') return alert("Por favor ingresa tu nombre");
+            const valor  = document.getElementById('voto-select').value;
 
             const { error } = await _supabase.from('votos').upsert(
                 { lote_id: seleccionado, nombre, telefono: tel, voto: valor },
                 { onConflict: 'lote_id' }
             );
 
-            if (error) { alert("Error al guardar: " + error.message); }
-            else { alert("¡Registro guardado!"); cerrarModal(); cargarVotos(); }
+            if (error) { alert("Error al guardar: " + error.message); return; }
+            cerrarModal();
+            cargarVotos();
         }
 
-        // ── ZOOM + PAN (Pointer Events — no jump on finger lift) ─────
+        // ── ZOOM + PAN ────────────────────────────────────────────────
+        // FIX 4: no MIN scale clamp (can zoom out freely)
+        // FIX 2: initial scale fits map height into container
         function initZoom() {
             const container = document.getElementById('map-container');
             const inner     = document.getElementById('map-inner');
-            let scale = 1, ox = 0, oy = 0;
-            const MIN = 1, MAX = 6;
+
+            // Compute initial scale so the full SVG height fits in the container
+            const svg = inner.querySelector('svg');
+            const vb  = svg ? svg.viewBox.baseVal : null;
+
+            let scale = 1;
+            let ox = 0, oy = 0;
+
+            function computeInitialScale() {
+                const cr = container.getBoundingClientRect();
+                if (vb && vb.height > 0 && vb.width > 0) {
+                    // fit by height
+                    const byH = cr.height / vb.height;
+                    // fit by width
+                    const byW = cr.width  / vb.width;
+                    scale = Math.min(byH, byW);
+                    // center
+                    const scaledW = vb.width  * scale;
+                    const scaledH = vb.height * scale;
+                    ox = (cr.width  - scaledW) / 2;
+                    oy = (cr.height - scaledH) / 2;
+                    svg.setAttribute('width',  vb.width);
+                    svg.setAttribute('height', vb.height);
+                    svg.style.width  = vb.width  + 'px';
+                    svg.style.height = vb.height + 'px';
+                }
+                apply();
+            }
 
             function apply() {
                 inner.style.transform = `translate(${ox}px,${oy}px) scale(${scale})`;
-            }
-            function clamp() {
-                const r  = container.getBoundingClientRect();
-                const sw = r.width * scale;
-                const sh = inner.offsetHeight * scale;
-                ox = Math.min(0, Math.max(r.width  - sw, ox));
-                oy = Math.min(0, Math.max(r.height - sh, oy));
+                inner.style.transformOrigin = '0 0';
             }
 
-            // Mouse wheel
+            // No clamping — user can zoom and pan freely (FIX 4)
+            computeInitialScale();
+
+            // Mouse wheel zoom
             container.addEventListener('wheel', e => {
                 e.preventDefault();
                 const r  = container.getBoundingClientRect();
                 const mx = e.clientX - r.left;
                 const my = e.clientY - r.top;
-                const ns = Math.min(MAX, Math.max(MIN, scale * (e.deltaY > 0 ? 0.85 : 1.18)));
+                const ns = scale * (e.deltaY > 0 ? 0.85 : 1.18);
                 const rt = ns / scale;
                 ox = mx - rt * (mx - ox);
                 oy = my - rt * (my - oy);
                 scale = ns;
-                clamp(); apply();
+                apply();
             }, { passive: false });
 
-            // Pointer-based pan + pinch (no jump when finger lifts)
-            const pts = new Map(); // pointerId → {x, y}
-            let panStart = null;   // {x, y, ox, oy} — set when 1 pointer active
+            // Pointer pan + pinch — FIX 3: track isDragging to suppress click
+            const pts = new Map();
+            let panStart = null;
+            let movedDist = 0;
 
             container.addEventListener('pointerdown', e => {
+                // Only handle on the container/svg, not intercept path clicks globally
                 container.setPointerCapture(e.pointerId);
                 pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                movedDist = 0;
+                isDragging = false;
                 if (pts.size === 1) {
                     panStart = { x: e.clientX, y: e.clientY, ox, oy };
                 }
-                // When second finger arrives, reset pinch baseline (no jump)
                 if (pts.size === 2) {
                     container._pinch = getPinch();
                 }
@@ -301,25 +392,28 @@
 
             container.addEventListener('pointermove', e => {
                 if (!pts.has(e.pointerId)) return;
+                const prev = pts.get(e.pointerId);
+                movedDist += Math.abs(e.clientX - prev.x) + Math.abs(e.clientY - prev.y);
+                if (movedDist > 5) isDragging = true;
+
                 pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
                 if (pts.size === 2) {
-                    const prev = container._pinch;
-                    if (!prev) return;
+                    const p0 = container._pinch;
+                    if (!p0) return;
                     const curr = getPinch();
-                    const rt   = (curr.dist / prev.dist);
-                    const ns   = Math.min(MAX, Math.max(MIN, scale * rt));
+                    const rt   = curr.dist / p0.dist;
+                    const ns   = scale * rt;
                     const r2   = ns / scale;
-                    ox = curr.mx - r2 * (curr.mx - ox) + (curr.mx - prev.mx);
-                    oy = curr.my - r2 * (curr.my - oy) + (curr.my - prev.my);
+                    ox = curr.mx - r2 * (curr.mx - ox) + (curr.mx - p0.mx);
+                    oy = curr.my - r2 * (curr.my - oy) + (curr.my - p0.my);
                     scale = ns;
                     container._pinch = curr;
-                    clamp(); apply();
-
+                    apply();
                 } else if (pts.size === 1 && panStart) {
                     ox = panStart.ox + (e.clientX - panStart.x);
                     oy = panStart.oy + (e.clientY - panStart.y);
-                    clamp(); apply();
+                    apply();
                 }
             });
 
@@ -327,11 +421,12 @@
                 pts.delete(e.pointerId);
                 container._pinch = null;
                 if (pts.size === 1) {
-                    // One finger remaining — anchor pan at current position (no jump)
                     const [pt] = pts.values();
                     panStart = { x: pt.x, y: pt.y, ox, oy };
                 } else if (pts.size === 0) {
                     panStart = null;
+                    // reset isDragging shortly after so click can fire
+                    setTimeout(() => { isDragging = false; }, 50);
                 }
             };
             container.addEventListener('pointerup',     endPointer);
@@ -339,7 +434,7 @@
 
             function getPinch() {
                 const [a, b] = [...pts.values()];
-                const r = container.getBoundingClientRect();
+                const r  = container.getBoundingClientRect();
                 const dx = b.x - a.x, dy = b.y - a.y;
                 return {
                     dist: Math.sqrt(dx*dx + dy*dy),
