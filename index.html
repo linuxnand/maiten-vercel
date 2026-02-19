@@ -340,7 +340,7 @@
                 const mx = e.clientX - r.left;
                 const my = e.clientY - r.top;
                 const MIN = getMinScale();
-                const ns  = Math.min(8, Math.max(MIN, scale * (e.deltaY > 0 ? 0.85 : 1.18)));
+                const ns  = Math.min(24, Math.max(MIN, scale * (e.deltaY > 0 ? 0.85 : 1.18)));
                 const rt  = ns / scale;
                 ox = mx - rt * (mx - ox);
                 oy = my - rt * (my - oy);
@@ -379,7 +379,7 @@
                     const curr = getPinch();
                     const MIN  = getMinScale();
                     const rt   = curr.dist / p0.dist;
-                    const ns   = Math.min(8, Math.max(MIN, scale * rt));
+                    const ns   = Math.min(24, Math.max(MIN, scale * rt));
                     const r2   = ns / scale;
                     ox = curr.mx - r2 * (curr.mx - ox) + (curr.mx - p0.mx);
                     oy = curr.my - r2 * (curr.my - oy) + (curr.my - p0.my);
