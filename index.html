@@ -217,6 +217,18 @@
                     svg.removeAttribute('width');
                     svg.removeAttribute('height');
                     svg.style.display = 'block';
+                    // Replace embedded JPEG image with a white rect so path colors are pure
+                    const imgEl = svg.querySelector('image');
+                    if (imgEl) {
+                        const vb = svg.viewBox.baseVal;
+                        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                        rect.setAttribute('x', vb.x || 0);
+                        rect.setAttribute('y', vb.y || 0);
+                        rect.setAttribute('width',  vb.width  || imgEl.getAttribute('width')  || '100%');
+                        rect.setAttribute('height', vb.height || imgEl.getAttribute('height') || '100%');
+                        rect.setAttribute('fill', '#ffffff');
+                        imgEl.replaceWith(rect);
+                    }
                 }
                 // Set gray fill on all paths immediately (they are transparent by default)
                 inner.querySelectorAll('path').forEach(p => {
