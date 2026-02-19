@@ -209,6 +209,11 @@
                     svg.removeAttribute('height');
                     svg.style.display = 'block';
                 }
+                // Strip any inline fill/style attrs so CSS classes can control color
+                inner.querySelectorAll('path').forEach(p => {
+                    p.removeAttribute('fill');
+                    p.removeAttribute('style');
+                });
                 escucharClicks();
                 cargarVotos();
                 initZoom();
@@ -221,15 +226,28 @@
             if (error) { console.error(error); return; }
 
             let si = 0, no = 0, nc = 0;
-            document.querySelectorAll('#map-inner path').forEach(p => p.setAttribute('class', 'lote-nc'));
+            document.querySelectorAll('#map-inner path').forEach(p => {
+                p.setAttribute('class', 'lote-nc');
+                p.setAttribute('fill', '#95a5a6');
+            });
 
             data.forEach(item => {
                 const el = document.getElementById(item.lote_id);
                 if (el) {
                     const v = (item.voto || '').toUpperCase();
-                    if (v === 'SI')      { el.setAttribute('class', 'lote-si'); si++; }
-                    else if (v === 'NO') { el.setAttribute('class', 'lote-no'); no++; }
-                    else                 { el.setAttribute('class', 'lote-nc'); nc++; }
+                    if (v === 'SI') {
+                        el.setAttribute('class', 'lote-si');
+                        el.setAttribute('fill', '#27ae60');
+                        si++;
+                    } else if (v === 'NO') {
+                        el.setAttribute('class', 'lote-no');
+                        el.setAttribute('fill', '#e74c3c');
+                        no++;
+                    } else {
+                        el.setAttribute('class', 'lote-nc');
+                        el.setAttribute('fill', '#95a5a6');
+                        nc++;
+                    }
                 }
             });
 
