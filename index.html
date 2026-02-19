@@ -3,96 +3,142 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mapa Pavimento El Maitén</title>
+    <title>Pavimento Barrio El Maitén</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        * { box-sizing: border-box; }
-        body { font-family: sans-serif; margin: 0; background: #f0f2f5; display: flex; flex-direction: column; align-items: center; }
-        
-        h1 { margin: 16px 0 6px; font-size: 1.2rem; text-align: center; padding: 0 10px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        #stats {
-            margin-bottom: 10px;
-            font-size: 1rem;
-            font-weight: bold;
-            text-align: center;
-            padding: 0 10px;
+        html, body {
+            height: 100%;
+            font-family: sans-serif;
+            background: #1a1a2e;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
-        #stats .stat-si { color: #2ecc71; }
-        #stats .stat-no { color: #e74c3c; }
-        #stats .stat-pct { color: white; background: rgba(0,0,0,0.25); border-radius: 4px; padding: 1px 5px; font-size: 0.85em; }
-        #stats .stat-nc { color: #7f8c8d; }
 
-        /* Map container with zoom */
+        /* ── STICKY HEADER ── */
+        #header {
+            flex-shrink: 0;
+            background: #16213e;
+            color: white;
+            text-align: center;
+            padding: 10px 12px 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+            z-index: 10;
+        }
+        #header h1 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: #e0e0e0;
+        }
+        #stats {
+            font-size: 0.95rem;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+        .stat-si  { color: #2ecc71; }
+        .stat-no  { color: #e74c3c; }
+        .stat-nc  { color: #bdc3c7; }
+        .stat-val { color: white; }
+        .stat-pct {
+            color: white;
+            background: rgba(255,255,255,0.18);
+            border-radius: 4px;
+            padding: 1px 5px;
+            font-size: 0.8em;
+        }
+
+        /* ── MAP AREA ── */
         #map-container {
-            width: 100%;
-            max-width: 900px;
-            margin: 0 20px 20px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            flex: 1;
             overflow: hidden;
             position: relative;
-            touch-action: none; /* handle touch manually */
+            background: #f0f2f5;
         }
-
         #map-inner {
             transform-origin: 0 0;
             cursor: grab;
+            width: 100%;
         }
         #map-inner:active { cursor: grabbing; }
-
         svg { width: 100%; height: auto; display: block; }
-        path { cursor: pointer; transition: fill 0.3s; stroke: #333; stroke-width: 0.5px; }
-        path:hover { opacity: 0.7; }
-        
-        .lote-si  { fill: #2ecc71 !important; }
-        .lote-no  { fill: #e74c3c !important; }
-        .lote-nc  { fill: #bdc3c7 !important; }   /* gray = no contesta / default */
+        path { cursor: pointer; transition: fill 0.2s; stroke: #333; stroke-width: 0.5px; }
+        path:hover { opacity: 0.75; }
+        .lote-si { fill: #2ecc71 !important; }
+        .lote-no { fill: #e74c3c !important; }
+        .lote-nc { fill: #bdc3c7 !important; }
 
-        /* Modal - fixed size, not affected by zoom */
+        /* ── MODAL ── */
         .modal {
             display: none;
             position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6);
+            inset: 0;
+            background: rgba(0,0,0,0.65);
             justify-content: center;
             align-items: center;
             z-index: 1000;
+            padding: 20px;
         }
         .modal-content {
             background: white;
-            padding: 25px;
-            border-radius: 12px;
-            width: calc(100vw - 40px);
-            max-width: 400px;
-            /* Fixed — not affected by any transform */
+            padding: 22px 20px 18px;
+            border-radius: 14px;
+            width: 100%;
+            max-width: 380px;
         }
-        .modal-content h2 { margin-top: 0; }
+        .modal-content h2 { font-size: 1.1rem; margin-bottom: 4px; color: #222; }
+        #lote-info { font-size: 0.85rem; color: #666; margin-bottom: 12px; min-height: 18px; }
         input {
             width: 100%;
-            padding: 10px;
-            margin: 8px 0;
+            padding: 10px 12px;
+            margin-bottom: 10px;
             border: 1px solid #ddd;
-            border-radius: 6px;
+            border-radius: 8px;
             font-size: 1rem;
         }
-        .btns { display: flex; gap: 10px; margin-top: 8px; }
-        button { flex: 1; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem; }
-        .btn-si { background: #2ecc71; color: white; }
-        .btn-no { background: #e74c3c; color: white; }
-        .btn-nc { background: #95a5a6; color: white; }
-        .btn-cancel { background: #ccc; color: #333; margin-top: 10px; width: 100%; }
-
-        /* Nombre/tel display in info area */
-        #lote-info { font-size: 0.9rem; color: #555; margin: 4px 0 8px; min-height: 20px; }
+        /* SÍ | NO | NC on one row */
+        .btns-main {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .btns-main button {
+            flex: 1;
+            padding: 12px 6px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+            color: white;
+        }
+        .btn-si { background: #2ecc71; }
+        .btn-no { background: #e74c3c; }
+        .btn-nc { background: #95a5a6; }
+        .btn-cancel {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: bold;
+            background: #e0e0e0;
+            color: #444;
+        }
     </style>
 </head>
 <body>
 
-    <h1>Mapa de Adhesión al Pavimento</h1>
-    <div id="stats">Cargando mapa...</div>
+    <div id="header">
+        <h1>Pavimento Barrio El Maitén</h1>
+        <div id="stats">Cargando...</div>
+    </div>
 
     <div id="map-container">
         <div id="map-inner"></div>
@@ -101,44 +147,37 @@
     <div class="modal" id="modal">
         <div class="modal-content">
             <h2 id="lote-titulo">Lote</h2>
-            <p id="lote-info"></p>
+            <div id="lote-info"></div>
             <input type="text" id="nombre" placeholder="Nombre y Apellido">
-            <input type="tel" id="telefono" placeholder="Teléfono">
-            <div class="btns">
-                <button class="btn-si" onclick="votar('SI')">✅ SÍ QUIERO</button>
-                <button class="btn-no" onclick="votar('NO')">❌ NO QUIERO</button>
-            </div>
-            <div class="btns" style="margin-top:8px;">
-                <button class="btn-nc" onclick="votar('NC')">↩️ NC (Sin respuesta)</button>
+            <input type="tel"  id="telefono" placeholder="Teléfono">
+            <div class="btns-main">
+                <button class="btn-si" onclick="votar('SI')">SÍ</button>
+                <button class="btn-no" onclick="votar('NO')">NO</button>
+                <button class="btn-nc" onclick="votar('NC')">NC</button>
             </div>
             <button class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
         </div>
     </div>
 
     <script>
-        const SB_URL = 'https://jhevntzswmuwxpcqvdje.supabase.co'; 
+        const SB_URL = 'https://jhevntzswmuwxpcqvdje.supabase.co';
         const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpoZXZudHpzd211d3hwY3F2ZGplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzNTE0NzAsImV4cCI6MjA4NjkyNzQ3MH0.i4Xn1TA9knS1a_3_3AoTrobfEg549kBf7iSK9E4Pj3g';
         const _supabase = window.supabase.createClient(SB_URL, SB_KEY);
 
         let seleccionado = null;
 
-        // ── 1. LOAD SVG ──────────────────────────────────────────────
+        // ── LOAD SVG ─────────────────────────────────────────────────
         fetch('mapa.svg')
-            .then(r => {
-                if (!r.ok) throw new Error("No se pudo cargar mapa.svg.");
-                return r.text();
-            })
+            .then(r => { if (!r.ok) throw new Error("No se pudo cargar mapa.svg."); return r.text(); })
             .then(data => {
                 document.getElementById('map-inner').innerHTML = data;
                 escucharClicks();
                 cargarVotos();
                 initZoom();
             })
-            .catch(err => {
-                document.getElementById('stats').innerText = "❌ " + err.message;
-            });
+            .catch(err => { document.getElementById('stats').innerText = "❌ " + err.message; });
 
-        // ── 2. LOAD VOTES ────────────────────────────────────────────
+        // ── LOAD VOTES ────────────────────────────────────────────────
         async function cargarVotos() {
             const { data, error } = await _supabase.from('votos').select('*');
             if (error) { console.error(error); return; }
@@ -150,13 +189,9 @@
                 const el = document.getElementById(item.lote_id);
                 if (el) {
                     const v = (item.voto || '').toUpperCase();
-                    if (v === 'SI') {
-                        el.setAttribute('class', 'lote-si'); si++;
-                    } else if (v === 'NO') {
-                        el.setAttribute('class', 'lote-no'); no++;
-                    } else {
-                        el.setAttribute('class', 'lote-nc'); nc++;
-                    }
+                    if (v === 'SI')      { el.setAttribute('class', 'lote-si'); si++; }
+                    else if (v === 'NO') { el.setAttribute('class', 'lote-no'); no++; }
+                    else                 { el.setAttribute('class', 'lote-nc'); nc++; }
                 }
             });
 
@@ -165,14 +200,12 @@
             const pctNo = total ? Math.round(no / total * 100) : 0;
 
             document.getElementById('stats').innerHTML =
-                `<span class="stat-si">SÍ: ${si} <span class="stat-pct">${pctSi}%</span></span>` +
-                `&nbsp;&nbsp;` +
-                `<span class="stat-no">NO: ${no} <span class="stat-pct">${pctNo}%</span></span>` +
-                `&nbsp;&nbsp;` +
-                `<span class="stat-nc">NC: ${nc}</span>`;
+                `<span class="stat-si">SÍ: <span class="stat-val">${si}</span> <span class="stat-pct">${pctSi}%</span></span>` +
+                `<span class="stat-no">NO: <span class="stat-val">${no}</span> <span class="stat-pct">${pctNo}%</span></span>` +
+                `<span class="stat-nc">NC: <span class="stat-val">${nc}</span></span>`;
         }
 
-        // ── 3. CLICK INTERACTION ─────────────────────────────────────
+        // ── CLICKS ───────────────────────────────────────────────────
         function escucharClicks() {
             document.querySelectorAll('#map-inner path').forEach(p => {
                 p.onclick = async () => {
@@ -181,18 +214,17 @@
                     document.getElementById('lote-titulo').innerText = "Lote: " + p.id;
                     document.getElementById('nombre').value = '';
                     document.getElementById('telefono').value = '';
-                    document.getElementById('lote-info').innerText = 'Cargando datos...';
+                    document.getElementById('lote-info').innerText = 'Cargando...';
 
-                    // Load existing data for this lote
                     const { data } = await _supabase.from('votos').select('*').eq('lote_id', p.id).maybeSingle();
                     if (data) {
                         const v = (data.voto || '').toUpperCase();
-                        const estado = v === 'SI' ? '✅ SÍ' : v === 'NO' ? '❌ NO' : '⬜ Sin respuesta';
+                        const estado = v === 'SI' ? '🟢 SÍ' : v === 'NO' ? '🔴 NO' : '⚪ Sin respuesta';
                         document.getElementById('lote-info').innerText =
-                            `Estado: ${estado}` +
-                            (data.nombre ? ` · ${data.nombre}` : '') +
-                            (data.telefono ? ` · ${data.telefono}` : '');
-                        if (data.nombre) document.getElementById('nombre').value = data.nombre;
+                            estado +
+                            (data.nombre   ? ' · ' + data.nombre   : '') +
+                            (data.telefono ? ' · ' + data.telefono : '');
+                        if (data.nombre)   document.getElementById('nombre').value   = data.nombre;
                         if (data.telefono) document.getElementById('telefono').value = data.telefono;
                     } else {
                         document.getElementById('lote-info').innerText = 'Sin datos registrados';
@@ -207,148 +239,116 @@
 
         async function votar(valor) {
             const nombre = document.getElementById('nombre').value.trim();
-            const tel = document.getElementById('telefono').value.trim();
+            const tel    = document.getElementById('telefono').value.trim();
             if (!nombre && valor !== 'NC') return alert("Por favor ingresa tu nombre");
 
-            const { error } = await _supabase.from('votos').upsert({
-                lote_id: seleccionado,
-                nombre: nombre,
-                telefono: tel,
-                voto: valor
-            }, { onConflict: 'lote_id' });
+            const { error } = await _supabase.from('votos').upsert(
+                { lote_id: seleccionado, nombre, telefono: tel, voto: valor },
+                { onConflict: 'lote_id' }
+            );
 
-            if (error) {
-                alert("Error al votar: " + error.message);
-            } else {
-                alert("¡Registro guardado con éxito!");
-                cerrarModal();
-                cargarVotos();
-            }
+            if (error) { alert("Error al guardar: " + error.message); }
+            else { alert("¡Registro guardado!"); cerrarModal(); cargarVotos(); }
         }
 
-        // ── 4. ZOOM (mouse wheel + pinch) ────────────────────────────
+        // ── ZOOM + PAN (Pointer Events — no jump on finger lift) ─────
         function initZoom() {
             const container = document.getElementById('map-container');
-            const inner = document.getElementById('map-inner');
-            let scale = 1;
-            let originX = 0, originY = 0;
-            let isDragging = false;
-            let dragStartX, dragStartY, dragOriginX, dragOriginY;
+            const inner     = document.getElementById('map-inner');
+            let scale = 1, ox = 0, oy = 0;
+            const MIN = 1, MAX = 6;
 
-            const MIN_SCALE = 1, MAX_SCALE = 6;
-
-            function applyTransform() {
-                inner.style.transform = `translate(${originX}px, ${originY}px) scale(${scale})`;
+            function apply() {
+                inner.style.transform = `translate(${ox}px,${oy}px) scale(${scale})`;
+            }
+            function clamp() {
+                const r  = container.getBoundingClientRect();
+                const sw = r.width * scale;
+                const sh = inner.offsetHeight * scale;
+                ox = Math.min(0, Math.max(r.width  - sw, ox));
+                oy = Math.min(0, Math.max(r.height - sh, oy));
             }
 
-            // Mouse wheel zoom
-            container.addEventListener('wheel', (e) => {
+            // Mouse wheel
+            container.addEventListener('wheel', e => {
                 e.preventDefault();
-                const rect = container.getBoundingClientRect();
-                const mouseX = e.clientX - rect.left;
-                const mouseY = e.clientY - rect.top;
-
-                const delta = e.deltaY > 0 ? 0.85 : 1.18;
-                const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale * delta));
-                const scaleRatio = newScale / scale;
-
-                originX = mouseX - scaleRatio * (mouseX - originX);
-                originY = mouseY - scaleRatio * (mouseY - originY);
-                scale = newScale;
-
-                clampOrigin(rect);
-                applyTransform();
+                const r  = container.getBoundingClientRect();
+                const mx = e.clientX - r.left;
+                const my = e.clientY - r.top;
+                const ns = Math.min(MAX, Math.max(MIN, scale * (e.deltaY > 0 ? 0.85 : 1.18)));
+                const rt = ns / scale;
+                ox = mx - rt * (mx - ox);
+                oy = my - rt * (my - oy);
+                scale = ns;
+                clamp(); apply();
             }, { passive: false });
 
-            // Drag to pan (mouse)
-            container.addEventListener('mousedown', (e) => {
-                if (e.button !== 0) return;
-                isDragging = true;
-                dragStartX = e.clientX;
-                dragStartY = e.clientY;
-                dragOriginX = originX;
-                dragOriginY = originY;
-            });
-            window.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-                const rect = container.getBoundingClientRect();
-                originX = dragOriginX + (e.clientX - dragStartX);
-                originY = dragOriginY + (e.clientY - dragStartY);
-                clampOrigin(rect);
-                applyTransform();
-            });
-            window.addEventListener('mouseup', () => { isDragging = false; });
+            // Pointer-based pan + pinch (no jump when finger lifts)
+            const pts = new Map(); // pointerId → {x, y}
+            let panStart = null;   // {x, y, ox, oy} — set when 1 pointer active
 
-            // Touch pinch zoom + pan
-            let lastTouchDist = null;
-            let lastTouchMidX = null, lastTouchMidY = null;
-            let touchOriginX, touchOriginY;
-
-            container.addEventListener('touchstart', (e) => {
-                if (e.touches.length === 2) {
-                    lastTouchDist = getTouchDist(e.touches);
-                    const mid = getTouchMid(e.touches, container);
-                    lastTouchMidX = mid.x; lastTouchMidY = mid.y;
-                    touchOriginX = originX; touchOriginY = originY;
-                } else if (e.touches.length === 1) {
-                    isDragging = true;
-                    dragStartX = e.touches[0].clientX;
-                    dragStartY = e.touches[0].clientY;
-                    dragOriginX = originX;
-                    dragOriginY = originY;
+            container.addEventListener('pointerdown', e => {
+                container.setPointerCapture(e.pointerId);
+                pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                if (pts.size === 1) {
+                    panStart = { x: e.clientX, y: e.clientY, ox, oy };
                 }
-            }, { passive: true });
-
-            container.addEventListener('touchmove', (e) => {
-                if (e.touches.length === 2) {
-                    e.preventDefault();
-                    const dist = getTouchDist(e.touches);
-                    const mid = getTouchMid(e.touches, container);
-                    const scaleRatio = dist / lastTouchDist;
-                    const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale * scaleRatio));
-                    const ratio = newScale / scale;
-
-                    originX = lastTouchMidX - ratio * (lastTouchMidX - touchOriginX) + (mid.x - lastTouchMidX);
-                    originY = lastTouchMidY - ratio * (lastTouchMidY - touchOriginY) + (mid.y - lastTouchMidY);
-                    scale = newScale;
-                    lastTouchDist = dist;
-                    lastTouchMidX = mid.x; lastTouchMidY = mid.y;
-                    touchOriginX = originX; touchOriginY = originY;
-
-                    clampOrigin(container.getBoundingClientRect());
-                    applyTransform();
-                } else if (e.touches.length === 1 && isDragging) {
-                    const rect = container.getBoundingClientRect();
-                    originX = dragOriginX + (e.touches[0].clientX - dragStartX);
-                    originY = dragOriginY + (e.touches[0].clientY - dragStartY);
-                    clampOrigin(rect);
-                    applyTransform();
+                // When second finger arrives, reset pinch baseline (no jump)
+                if (pts.size === 2) {
+                    container._pinch = getPinch();
                 }
-            }, { passive: false });
-
-            container.addEventListener('touchend', (e) => {
-                if (e.touches.length < 2) lastTouchDist = null;
-                if (e.touches.length === 0) isDragging = false;
             });
 
-            function getTouchDist(touches) {
-                const dx = touches[0].clientX - touches[1].clientX;
-                const dy = touches[0].clientY - touches[1].clientY;
-                return Math.sqrt(dx*dx + dy*dy);
-            }
-            function getTouchMid(touches, el) {
-                const rect = el.getBoundingClientRect();
+            container.addEventListener('pointermove', e => {
+                if (!pts.has(e.pointerId)) return;
+                pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+                if (pts.size === 2) {
+                    const prev = container._pinch;
+                    if (!prev) return;
+                    const curr = getPinch();
+                    const rt   = (curr.dist / prev.dist);
+                    const ns   = Math.min(MAX, Math.max(MIN, scale * rt));
+                    const r2   = ns / scale;
+                    ox = curr.mx - r2 * (curr.mx - ox) + (curr.mx - prev.mx);
+                    oy = curr.my - r2 * (curr.my - oy) + (curr.my - prev.my);
+                    scale = ns;
+                    container._pinch = curr;
+                    clamp(); apply();
+
+                } else if (pts.size === 1 && panStart) {
+                    ox = panStart.ox + (e.clientX - panStart.x);
+                    oy = panStart.oy + (e.clientY - panStart.y);
+                    clamp(); apply();
+                }
+            });
+
+            const endPointer = e => {
+                pts.delete(e.pointerId);
+                container._pinch = null;
+                if (pts.size === 1) {
+                    // One finger remaining — anchor pan at current position (no jump)
+                    const [pt] = pts.values();
+                    panStart = { x: pt.x, y: pt.y, ox, oy };
+                } else if (pts.size === 0) {
+                    panStart = null;
+                }
+            };
+            container.addEventListener('pointerup',     endPointer);
+            container.addEventListener('pointercancel', endPointer);
+
+            function getPinch() {
+                const [a, b] = [...pts.values()];
+                const r = container.getBoundingClientRect();
+                const dx = b.x - a.x, dy = b.y - a.y;
                 return {
-                    x: ((touches[0].clientX + touches[1].clientX) / 2) - rect.left,
-                    y: ((touches[0].clientY + touches[1].clientY) / 2) - rect.top
+                    dist: Math.sqrt(dx*dx + dy*dy),
+                    mx: ((a.x + b.x) / 2) - r.left,
+                    my: ((a.y + b.y) / 2) - r.top,
                 };
             }
-            function clampOrigin(rect) {
-                const scaledW = rect.width * scale;
-                const scaledH = (inner.scrollHeight || rect.height) * scale;
-                originX = Math.min(0, Math.max(rect.width - scaledW, originX));
-                originY = Math.min(0, Math.max(rect.height - scaledH, originY));
-            }
+
+            container.style.touchAction = 'none';
         }
     </script>
 </body>
