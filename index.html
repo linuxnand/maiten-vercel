@@ -221,7 +221,18 @@
                 }
                 // Fade the background JPEG so path colors stay true
                 const imgEl = svg.querySelector('image');
-                if (imgEl) imgEl.style.opacity = '0.25';
+                if (imgEl) {
+                    // Insert white rect behind the JPEG so street gaps appear white
+                    const whiteRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    whiteRect.setAttribute('x', '0');
+                    whiteRect.setAttribute('y', '0');
+                    whiteRect.setAttribute('width', imgEl.getAttribute('width') || '100%');
+                    whiteRect.setAttribute('height', imgEl.getAttribute('height') || '100%');
+                    whiteRect.setAttribute('fill', '#ffffff');
+                    imgEl.parentNode.insertBefore(whiteRect, imgEl);
+                    // Fade JPEG so path colors are accurate but satellite context remains
+                    imgEl.style.opacity = '0.25';
+                }
 
                 // Set gray fill on all paths immediately (they are transparent by default)
                 inner.querySelectorAll('path').forEach(p => {
@@ -255,6 +266,8 @@
             document.querySelectorAll('#map-inner path').forEach(p => {
                 p.style.fill = colorMap.get(p.id) || '#c8d0d8';
                 p.style.fillOpacity = '1';
+                p.style.opacity = '1';         // override any inherited group opacity
+                p.removeAttribute('opacity');  // remove SVG presentation opacity if any
                 if (!colorMap.has(p.id)) nc++;
             });
 
