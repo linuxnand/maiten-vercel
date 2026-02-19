@@ -71,7 +71,7 @@
         path:hover { opacity: 0.75; }
         .lote-si { fill: #27ae60 !important; }
         .lote-no { fill: #e74c3c !important; }
-        .lote-nc { fill: #bdc3c7 !important; }
+        .lote-nc { fill: #95a5a6 !important; }
 
         /* ── MODAL ── */
         .modal {
@@ -324,10 +324,10 @@
                 inner.style.transform = `translate(${ox}px,${oy}px) scale(${scale})`;
             }
 
-            // MIN scale: SVG must be at least 50% of screen height
+            // MIN scale: ~16.7% of screen height = triple zoom-out vs 50%
             function getMinScale() {
                 const cr = container.getBoundingClientRect();
-                return (cr.height * 0.5) / svgH;
+                return (cr.height * 0.167) / svgH;
             }
 
             // No position clamping — free pan
