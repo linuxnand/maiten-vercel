@@ -209,10 +209,10 @@
                     svg.removeAttribute('height');
                     svg.style.display = 'block';
                 }
-                // Strip any inline fill/style attrs so CSS classes can control color
+                // Set gray fill on all paths immediately (they are transparent by default)
                 inner.querySelectorAll('path').forEach(p => {
-                    p.removeAttribute('fill');
-                    p.removeAttribute('style');
+                    p.setAttribute('fill', '#95a5a6');
+                    p.setAttribute('fill-opacity', '0.75');
                 });
                 escucharClicks();
                 cargarVotos();
@@ -227,8 +227,8 @@
 
             let si = 0, no = 0, nc = 0;
             document.querySelectorAll('#map-inner path').forEach(p => {
-                p.setAttribute('class', 'lote-nc');
                 p.setAttribute('fill', '#95a5a6');
+                p.setAttribute('fill-opacity', '0.75');
             });
 
             data.forEach(item => {
@@ -236,16 +236,16 @@
                 if (el) {
                     const v = (item.voto || '').toUpperCase();
                     if (v === 'SI') {
-                        el.setAttribute('class', 'lote-si');
                         el.setAttribute('fill', '#27ae60');
+                        el.setAttribute('fill-opacity', '0.85');
                         si++;
                     } else if (v === 'NO') {
-                        el.setAttribute('class', 'lote-no');
                         el.setAttribute('fill', '#e74c3c');
+                        el.setAttribute('fill-opacity', '0.85');
                         no++;
                     } else {
-                        el.setAttribute('class', 'lote-nc');
                         el.setAttribute('fill', '#95a5a6');
+                        el.setAttribute('fill-opacity', '0.75');
                         nc++;
                     }
                 }
