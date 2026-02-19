@@ -219,6 +219,10 @@
                     svg.style.display = 'block';
 
                 }
+                // Fade the background JPEG so path colors stay true
+                const imgEl = svg.querySelector('image');
+                if (imgEl) imgEl.style.opacity = '0.25';
+
                 // Set gray fill on all paths immediately (they are transparent by default)
                 inner.querySelectorAll('path').forEach(p => {
                     p.style.fill = '#c8d0d8';
