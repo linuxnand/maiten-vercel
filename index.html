@@ -41,8 +41,8 @@
             gap: 14px;
             flex-wrap: wrap;
         }
-        .stat-si  { color: #27ae60; }
-        .stat-no  { color: #e74c3c; }
+        .stat-si  { color: #2ecc71; }
+        .stat-no  { color: #ff4136; }
         .stat-nc  { color: #bdc3c7; }
         .stat-val { color: white; font-size: 0.95rem; }
         .stat-pct { color: white; font-size: 0.95rem; }
@@ -69,9 +69,9 @@
             stroke-width: 0.5px;
         }
         path:hover { opacity: 0.75; }
-        .lote-si { fill: #27ae60 !important; }
-        .lote-no { fill: #e74c3c !important; }
-        .lote-nc { fill: #95a5a6 !important; }
+        .lote-si { fill: #2ecc71 !important; }
+        .lote-no { fill: #ff4136 !important; }
+        .lote-nc { fill: #b2bec3 !important; }
 
         /* ── MODAL ── */
         .modal {
@@ -151,7 +151,7 @@
             font-weight: bold;
             font-size: 1rem;
         }
-        .btn-guardar { background: #27ae60; color: white; }
+        .btn-guardar { background: #2ecc71; color: white; }
         .btn-cancel  { background: #3a4a5e; color: #ccc; }
     </style>
 </head>
@@ -211,7 +211,7 @@
                 }
                 // Set gray fill on all paths immediately (they are transparent by default)
                 inner.querySelectorAll('path').forEach(p => {
-                    p.setAttribute('fill', '#95a5a6');
+                    p.setAttribute('fill', '#b2bec3');
                     p.setAttribute('fill-opacity', '0.75');
                 });
                 escucharClicks();
@@ -227,7 +227,7 @@
 
             let si = 0, no = 0, nc = 0;
             document.querySelectorAll('#map-inner path').forEach(p => {
-                p.setAttribute('fill', '#95a5a6');
+                p.setAttribute('fill', '#b2bec3');
                 p.setAttribute('fill-opacity', '0.75');
             });
 
@@ -236,15 +236,15 @@
                 if (el) {
                     const v = (item.voto || '').toUpperCase();
                     if (v === 'SI') {
-                        el.setAttribute('fill', '#27ae60');
+                        el.setAttribute('fill', '#2ecc71');
                         el.setAttribute('fill-opacity', '0.85');
                         si++;
                     } else if (v === 'NO') {
-                        el.setAttribute('fill', '#e74c3c');
+                        el.setAttribute('fill', '#ff4136');
                         el.setAttribute('fill-opacity', '0.85');
                         no++;
                     } else {
-                        el.setAttribute('fill', '#95a5a6');
+                        el.setAttribute('fill', '#b2bec3');
                         el.setAttribute('fill-opacity', '0.75');
                         nc++;
                     }
@@ -358,7 +358,7 @@
                 const mx = e.clientX - r.left;
                 const my = e.clientY - r.top;
                 const MIN = getMinScale();
-                const ns  = Math.min(24, Math.max(MIN, scale * (e.deltaY > 0 ? 0.85 : 1.18)));
+                const ns  = Math.min(36, Math.max(MIN, scale * (e.deltaY > 0 ? 0.85 : 1.18)));
                 const rt  = ns / scale;
                 ox = mx - rt * (mx - ox);
                 oy = my - rt * (my - oy);
@@ -397,7 +397,7 @@
                     const curr = getPinch();
                     const MIN  = getMinScale();
                     const rt   = curr.dist / p0.dist;
-                    const ns   = Math.min(24, Math.max(MIN, scale * rt));
+                    const ns   = Math.min(36, Math.max(MIN, scale * rt));
                     const r2   = ns / scale;
                     ox = curr.mx - r2 * (curr.mx - ox) + (curr.mx - p0.mx);
                     oy = curr.my - r2 * (curr.my - oy) + (curr.my - p0.my);
