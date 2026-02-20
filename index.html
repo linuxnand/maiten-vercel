@@ -325,23 +325,22 @@
                 // Tooltip on hover (PC only)
                 p.addEventListener('mouseenter', async () => {
                     const tip = document.getElementById('tooltip');
-                    tip.innerHTML = '<span style="color:#aaa;font-size:0.75rem">' + p.id + '</span><br>Cargando...';
+                    tip.innerHTML = 'Cargando...';
                     tip.style.display = 'block';
 
                     const { data } = await _supabase
                         .from('votos').select('*').eq('lote_id', p.id).maybeSingle();
 
-                    if (!tip.style.display || tip.style.display === 'none') return; // mouse left
+                    if (!tip.style.display || tip.style.display === 'none') return;
                     if (data) {
                         const v = (data.voto || '').toUpperCase();
-                        const estado = v === 'SI' ? '🟢 SÍ quiere' : v === 'NO' ? '🔴 NO quiere' : '⚪ Sin respuesta';
+                        const estado = v === 'SI' ? '🟢 SÍ quiere pavimento' : v === 'NO' ? '🔴 NO quiere pavimento' : '⚪ Sin respuesta';
                         tip.innerHTML =
-                            '<span style="color:#aaa;font-size:0.75rem">' + p.id + '</span><br>' +
-                            '<b>' + estado + '</b>' +
-                            (data.nombre   ? '<br>' + data.nombre   : '') +
-                            (data.telefono ? '<br>📞 ' + data.telefono : '');
+                            'Nombre: <b>' + (data.nombre || '—') + '</b><br>' +
+                            'Teléfono: <b>' + (data.telefono || '—') + '</b><br>' +
+                            estado;
                     } else {
-                        tip.innerHTML = '<span style="color:#aaa;font-size:0.75rem">' + p.id + '</span><br>Sin datos';
+                        tip.innerHTML = 'Nombre: <b>—</b><br>Teléfono: <b>—</b><br>⚪ Sin respuesta';
                     }
                 });
 
