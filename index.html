@@ -98,6 +98,9 @@
             max-width: 260px;
             width: 260px;
         }
+        #tooltip.mobile-tip:not(:has(.tip-edit-btn:hover)) {
+            /* allow taps on tooltip area to propagate for closing */
+        }
         #tooltip .tip-edit-btn {
             display: block;
             width: 100%;
@@ -344,6 +347,19 @@
         }
 
         function escucharClicks() {
+            // ── Cerrar tooltip móvil al tocar cualquier parte fuera del tooltip ──
+            document.addEventListener('click', (e) => {
+                if (window._panMoved > 12) return;
+                const tip = document.getElementById('tooltip');
+                if (!tip.classList.contains('mobile-tip')) return;
+                // Si el toque fue dentro del tooltip, no cerrar
+                if (tip.contains(e.target)) return;
+                // Si el toque fue en un path, el handler del path lo maneja
+                if (e.target.tagName === 'path') return;
+                tip.style.display = 'none';
+                tip.classList.remove('mobile-tip');
+                restoreHighlight();
+            }, true); // capture phase para que llegue antes del stopPropagation
             document.querySelectorAll('#map-inner path').forEach(p => {
 
                 // Tooltip on hover (PC only — skip all mouse events on touch screens)
@@ -615,6 +631,19 @@
             }
 
             container.style.touchAction = 'none';
+
+            // ── Cerrar tooltip móvil al tocar fuera de un polígono ──
+            container.addEventListener('click', (e) => {
+                if (window._panMoved > 12) return;
+                // Si el click fue en un path, los clicks de polígono lo manejan
+                if (e.target.tagName === 'path') return;
+                const tip = document.getElementById('tooltip');
+                if (tip.classList.contains('mobile-tip')) {
+                    tip.style.display = 'none';
+                    tip.classList.remove('mobile-tip');
+                    restoreHighlight();
+                }
+            });
         }
     </script>
 </body>
