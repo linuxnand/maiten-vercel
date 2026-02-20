@@ -66,7 +66,7 @@
         svg { display: block; }
         path {
             cursor: pointer;
-            transition: fill 0.2s;
+            transition: fill 0.15s ease;
             stroke: #333;
             stroke-width: 0.5px;
         }
@@ -287,42 +287,35 @@
         // KEY FIX: attach click on paths ONLY. Pan system uses pointerdown/move/up
         // on the container but does NOT call setPointerCapture on the SVG paths,
         // so native click events still fire on them after a clean tap.
-        // Lighten a hex color by mixing it with white
-        function lightenColor(hex, amount) {
-            const r = parseInt(hex.slice(1,3), 16);
-            const g = parseInt(hex.slice(3,5), 16);
-            const b = parseInt(hex.slice(5,7), 16);
-            const lr = Math.round(r + (255 - r) * amount);
-            const lg = Math.round(g + (255 - g) * amount);
-            const lb = Math.round(b + (255 - b) * amount);
-            return '#' + [lr,lg,lb].map(v => v.toString(16).padStart(2,'0')).join('');
+        function lightenColor(hex) {
+            // Mix color 50% with white
+            const r = parseInt(hex.slice(1,3),16);
+            const g = parseInt(hex.slice(3,5),16);
+            const b = parseInt(hex.slice(5,7),16);
+            return '#'+[r,g,b].map(v=>Math.round(v+(255-v)*0.5).toString(16).padStart(2,'0')).join('');
+        }
+
+        let _hlPath = null, _hlColor = null;
+
+        function highlightPath(p) {
+            // Restore previous highlight first
+            if (_hlPath && _hlPath !== p) {
+                _hlPath.style.fill = _hlColor;
+            }
+            _hlColor = p.style.fill || '#c8d0d8';
+            _hlPath  = p;
+            p.style.fill = lightenColor(_hlColor);
+        }
+
+        function restoreHighlight() {
+            if (_hlPath && _hlColor) {
+                _hlPath.style.fill = _hlColor;
+            }
+            _hlPath = null; _hlColor = null;
         }
 
         function escucharClicks() {
             document.querySelectorAll('#map-inner path').forEach(p => {
-
-                // Highlight immediately on touch/click (pointerdown fires before click)
-                p.addEventListener('pointerdown', (e) => {
-                    // Don't stop propagation - pan system needs it
-                    // But do highlight immediately
-                    if (window._selectedPath && window._selectedPath !== p) {
-                        window._selectedPath.style.fill = window._selectedOriginalFill;
-                    }
-                    const currentFill = p.style.fill || '#c8d0d8';
-                    window._selectedPath = p;
-                    window._selectedOriginalFill = currentFill;
-                    p.style.fill = lightenColor(currentFill, 0.45);
-                    // If user drags instead of tapping, restore color
-                    const restore = () => {
-                        if (window._panMoved > 8 && window._selectedPath === p) {
-                            p.style.fill = currentFill;
-                            window._selectedPath = null;
-                            window._selectedOriginalFill = null;
-                        }
-                        window.removeEventListener('pointerup', restore);
-                    };
-                    window.addEventListener('pointerup', restore);
-                });
 
                 p.addEventListener('click', async (e) => {
                     // If the user dragged more than 8px total, treat as pan not click
@@ -330,6 +323,7 @@
                     if (!p.id) return;
                     e.stopPropagation();
 
+                    highlightPath(p);
                     seleccionado = p.id;
                     document.getElementById('nombre').value   = '';
                     document.getElementById('telefono').value = '';
@@ -353,12 +347,7 @@
 
         function cerrarModal() {
             document.getElementById('modal').style.display = 'none';
-            // Restore original color of selected polygon
-            if (window._selectedPath && window._selectedOriginalFill) {
-                window._selectedPath.style.fill = window._selectedOriginalFill;
-                window._selectedPath = null;
-                window._selectedOriginalFill = null;
-            }
+
         }
 
         async function guardar() {
