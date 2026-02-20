@@ -426,11 +426,13 @@
 
                         highlightPath(p);
 
-                        // Botón Editar: usar addEventListener para evitar conflicto con cierre
-                        document.getElementById('tip-edit-btn-inner').addEventListener('click', (ev) => {
-                            ev.stopPropagation();
-                            abrirModal(p.id);
-                        });
+                        // Botón Editar: event delegation en el tooltip
+                        tip.onclick = (ev) => {
+                            if (ev.target.classList.contains('tip-edit-btn')) {
+                                ev.stopPropagation();
+                                abrirModal(tip.dataset.loteId);
+                            }
+                        };
 
                         // Cerrar si toca fuera (con delay para no capturar el toque actual)
                         setTimeout(() => {
