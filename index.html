@@ -276,11 +276,13 @@
             // Construir mapa de colores ANTES de tocar el DOM
             // así cada path se pinta una sola vez con su color final
             const colorMap = new Map();
+            window._votosData = {};  // cache for tooltip
             data.forEach(item => {
                 const v = (item.voto || '').toUpperCase();
                 if (v === 'SI')      { colorMap.set(item.lote_id, '#2ecc71'); si++; }
                 else if (v === 'NO') { colorMap.set(item.lote_id, '#ff4136'); no++; }
                 else                 { colorMap.set(item.lote_id, '#c8d0d8'); nc++; }
+                window._votosData[item.lote_id] = item;
             });
 
             // Una sola pasada por el DOM: cada path recibe su color final directo
@@ -323,15 +325,9 @@
             document.querySelectorAll('#map-inner path').forEach(p => {
 
                 // Tooltip on hover (PC only)
-                p.addEventListener('mouseenter', async () => {
+                p.addEventListener('mouseenter', () => {
                     const tip = document.getElementById('tooltip');
-                    tip.innerHTML = 'Cargando...';
-                    tip.style.display = 'block';
-
-                    const { data } = await _supabase
-                        .from('votos').select('*').eq('lote_id', p.id).maybeSingle();
-
-                    if (!tip.style.display || tip.style.display === 'none') return;
+                    const data = window._votosData && window._votosData[p.id];
                     if (data) {
                         const v = (data.voto || '').toUpperCase();
                         const estado = v === 'SI' ? '🟢 SÍ quiere pavimento' : v === 'NO' ? '🔴 NO quiere pavimento' : '⚪ Sin respuesta';
@@ -342,6 +338,7 @@
                     } else {
                         tip.innerHTML = 'Nombre: <b>—</b><br>Teléfono: <b>—</b><br>⚪ Sin respuesta';
                     }
+                    tip.style.display = 'block';
                 });
 
                 p.addEventListener('mousemove', (e) => {
