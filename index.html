@@ -91,6 +91,28 @@
             max-width: 220px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.4);
         }
+        #tooltip.mobile-tip {
+            pointer-events: auto;
+            left: 50% !important;
+            transform: translateX(-50%);
+            max-width: 260px;
+            width: 260px;
+        }
+        #tooltip .tip-edit-btn {
+            display: block;
+            width: 100%;
+            margin-top: 10px;
+            padding: 6px 0;
+            background: #333;
+            color: #fff;
+            border: 1px solid #666;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-family: inherit;
+            text-align: center;
+            cursor: pointer;
+        }
+        #tooltip .tip-edit-btn:active { background: #555; }
 
         /* ── MODAL ── */
         .modal {
@@ -361,27 +383,74 @@
                     if (!p.id) return;
                     e.stopPropagation();
 
-                    highlightPath(p);
-                    seleccionado = p.id;
-                    document.getElementById('nombre').value   = '';
-                    document.getElementById('telefono').value = '';
-                    document.getElementById('voto-select').value = 'NC';
+                    const isMobile = window.matchMedia('(pointer: coarse)').matches;
 
+                    if (isMobile) {
+                        // Móvil: mostrar tooltip con datos + botón Editar
+                        const tip = document.getElementById('tooltip');
+                        // Si ya está abierto para este mismo lote, cerrarlo
+                        if (tip.classList.contains('mobile-tip') && tip.dataset.loteId === p.id) {
+                            tip.style.display = 'none';
+                            tip.classList.remove('mobile-tip');
+                            restoreHighlight();
+                            return;
+                        }
+                        // Armar contenido del tooltip
+                        const d = window._votosData && window._votosData[p.id];
+                        const v = d ? (d.voto || '').toUpperCase() : '';
+                        const estado = v === 'SI' ? '🟢 SÍ quiere pavimento'
+                                     : v === 'NO' ? '🔴 NO quiere pavimento'
+                                     : '⚪ Sin respuesta';
+                        tip.innerHTML =
+                            'Nombre: <b>' + (d && d.nombre   || '—') + '</b><br>' +
+                            'Teléfono: <b>' + (d && d.telefono || '—') + '</b><br>' +
+                            estado +
+                            '<button class="tip-edit-btn" onclick="abrirModal('' + p.id + '')">Editar</button>';
+                        tip.dataset.loteId = p.id;
+                        tip.classList.add('mobile-tip');
+                        tip.style.top = (document.getElementById('header').offsetHeight + 12) + 'px';
+                        tip.style.display = 'block';
+                        highlightPath(p);
+                        // Cerrar si toca fuera
+                        setTimeout(() => {
+                            const cerrar = (ev) => {
+                                if (!tip.contains(ev.target)) {
+                                    tip.style.display = 'none';
+                                    tip.classList.remove('mobile-tip');
+                                    restoreHighlight();
+                                    document.removeEventListener('pointerdown', cerrar);
+                                }
+                            };
+                            document.addEventListener('pointerdown', cerrar);
+                        }, 100);
 
-
-                    const { data } = await _supabase
-                        .from('votos').select('*').eq('lote_id', p.id).maybeSingle();
-                    if (data) {
-                        if (data.nombre)   document.getElementById('nombre').value   = data.nombre;
-                        if (data.telefono) document.getElementById('telefono').value = data.telefono;
-                        const v = (data.voto || '').toUpperCase();
-                        document.getElementById('voto-select').value =
-                            (v === 'SI' || v === 'NO') ? v : 'NC';
+                    } else {
+                        // PC: abrir modal directo (igual que antes)
+                        await abrirModal(p.id);
                     }
-                    document.getElementById('tooltip').style.display = 'none';
-                    document.getElementById('modal').style.display = 'flex';
                 });
             });
+        }
+
+        async function abrirModal(loteId) {
+            const tip = document.getElementById('tooltip');
+            tip.style.display = 'none';
+            tip.classList.remove('mobile-tip');
+            seleccionado = loteId;
+            const p = document.getElementById(loteId);
+            if (p) highlightPath(p);
+            document.getElementById('nombre').value   = '';
+            document.getElementById('telefono').value = '';
+            document.getElementById('voto-select').value = 'NC';
+            // Use cached data - no extra Supabase call
+            const d = window._votosData && window._votosData[loteId];
+            if (d) {
+                if (d.nombre)   document.getElementById('nombre').value   = d.nombre;
+                if (d.telefono) document.getElementById('telefono').value = d.telefono;
+                const v = (d.voto || '').toUpperCase();
+                document.getElementById('voto-select').value = (v === 'SI' || v === 'NO') ? v : 'NC';
+            }
+            document.getElementById('modal').style.display = 'flex';
         }
 
         function cerrarModal() {
