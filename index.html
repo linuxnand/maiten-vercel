@@ -439,20 +439,19 @@
                             }
                         };
 
-                        // Cerrar si toca fuera — ignorar el evento actual con un flag
-                        let tooltipJustOpened = true;
-                        setTimeout(() => { tooltipJustOpened = false; }, 400);
+                        // Cerrar si toca fuera — usar touchend para evitar conflicto con el toque actual
                         const cerrar = (ev) => {
-                            if (tooltipJustOpened) return;
                             if (!tip.contains(ev.target)) {
                                 tip.style.display = 'none';
                                 tip.classList.remove('mobile-tip');
                                 restoreHighlight();
                                 document.querySelectorAll('#map-inner path').forEach(pp => pp.style.pointerEvents = '');
-                                document.removeEventListener('pointerdown', cerrar);
+                                document.removeEventListener('touchend', cerrar);
                             }
                         };
-                        document.addEventListener('pointerdown', cerrar);
+                        setTimeout(() => {
+                            document.addEventListener('touchend', cerrar);
+                        }, 50);
 
                     } else {
                         // PC: abrir modal directo (igual que antes)
