@@ -383,6 +383,7 @@
                 });
 
                 p.addEventListener('mouseleave', () => {
+                    if (window.matchMedia('(pointer: coarse)').matches) return;
                     document.getElementById('tooltip').style.display = 'none';
                 });
 
