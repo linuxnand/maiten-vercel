@@ -439,19 +439,20 @@
                             }
                         };
 
-                        // Cerrar si toca fuera (con delay para no capturar el toque actual)
-                        setTimeout(() => {
-                            const cerrar = (ev) => {
-                                if (!tip.contains(ev.target)) {
-                                    tip.style.display = 'none';
-                                    tip.classList.remove('mobile-tip');
-                                    restoreHighlight();
-                                    document.querySelectorAll('#map-inner path').forEach(pp => pp.style.pointerEvents = '');
-                                    document.removeEventListener('pointerdown', cerrar);
-                                }
-                            };
-                            document.addEventListener('pointerdown', cerrar);
-                        }, 300);
+                        // Cerrar si toca fuera — ignorar el evento actual con un flag
+                        let tooltipJustOpened = true;
+                        setTimeout(() => { tooltipJustOpened = false; }, 400);
+                        const cerrar = (ev) => {
+                            if (tooltipJustOpened) return;
+                            if (!tip.contains(ev.target)) {
+                                tip.style.display = 'none';
+                                tip.classList.remove('mobile-tip');
+                                restoreHighlight();
+                                document.querySelectorAll('#map-inner path').forEach(pp => pp.style.pointerEvents = '');
+                                document.removeEventListener('pointerdown', cerrar);
+                            }
+                        };
+                        document.addEventListener('pointerdown', cerrar);
 
                     } else {
                         // PC: abrir modal directo (igual que antes)
