@@ -13,7 +13,7 @@
         html, body {
             height: 100%;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #000000;
+            background: #ffffff;
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -54,7 +54,7 @@
             flex: 1;
             overflow: hidden;
             position: relative;
-            background: #f0f2f5;
+            background: #ffffff;
             cursor: grab;
         }
         #map-container.grabbing { cursor: grabbing; }
@@ -66,15 +66,15 @@
         svg { display: block; }
         path {
             cursor: pointer;
-            transition: fill 0.2s;
+            transition: fill 0.15s ease;
             stroke: #333;
             stroke-width: 0.5px;
         }
         path:hover { opacity: 0.75; }
+        path.lote-highlight { filter: brightness(1.6) !important; }
         .lote-si { fill: #2ecc71 !important; }
         .lote-no { fill: #ff4136 !important; }
         .lote-nc { fill: #c8d0d8 !important; }
-
 
         /* ── TOOLTIP ── */
         #tooltip {
@@ -85,31 +85,13 @@
             padding: 8px 12px;
             border-radius: 8px;
             font-size: 0.82rem;
-            line-height: 1.6;
+            line-height: 1.5;
             pointer-events: none;
             z-index: 999;
             max-width: 220px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.4);
         }
-        #tooltip.mobile {
-            pointer-events: auto;
-        }
-        #tooltip .tip-edit-btn {
-            display: block;
-            width: 100%;
-            margin-top: 8px;
-            padding: 5px 0;
-            background: #222;
-            color: #fff;
-            border: 1px solid #555;
-            border-radius: 5px;
-            font-size: 0.82rem;
-            font-family: inherit;
-            text-align: center;
-            cursor: pointer;
-        }
-        #tooltip .tip-edit-btn:active { background: #444; }
-        path.lote-highlight { filter: brightness(1.6) !important; }
+
         /* ── MODAL ── */
         .modal {
             display: none;
@@ -258,6 +240,21 @@
                     svg.style.display = 'block';
 
                 }
+                // Fade the background JPEG so path colors stay true
+                const imgEl = svg.querySelector('image');
+                if (imgEl) {
+                    // Insert white rect behind the JPEG so street gaps appear white
+                    const whiteRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    whiteRect.setAttribute('x', '0');
+                    whiteRect.setAttribute('y', '0');
+                    whiteRect.setAttribute('width', imgEl.getAttribute('width') || '100%');
+                    whiteRect.setAttribute('height', imgEl.getAttribute('height') || '100%');
+                    whiteRect.setAttribute('fill', '#ffffff');
+                    imgEl.parentNode.insertBefore(whiteRect, imgEl);
+                    // Fade JPEG so path colors are accurate but satellite context remains
+                    imgEl.style.opacity = '1';
+                }
+
                 // Set gray fill on all paths immediately (they are transparent by default)
                 inner.querySelectorAll('path').forEach(p => {
                     p.style.fill = '#c8d0d8';
@@ -279,7 +276,7 @@
             // Construir mapa de colores ANTES de tocar el DOM
             // así cada path se pinta una sola vez con su color final
             const colorMap = new Map();
-            window._votosData = {};
+            window._votosData = {};  // cache for tooltip
             data.forEach(item => {
                 const v = (item.voto || '').toUpperCase();
                 if (v === 'SI')      { colorMap.set(item.lote_id, '#2ecc71'); si++; }
@@ -292,6 +289,8 @@
             document.querySelectorAll('#map-inner path').forEach(p => {
                 p.style.fill = colorMap.get(p.id) || '#c8d0d8';
                 p.style.fillOpacity = '1';
+                p.style.opacity = '1';         // override any inherited group opacity
+                p.removeAttribute('opacity');  // remove SVG presentation opacity if any
                 if (!colorMap.has(p.id)) nc++;
             });
 
@@ -310,114 +309,85 @@
         // on the container but does NOT call setPointerCapture on the SVG paths,
         // so native click events still fire on them after a clean tap.
         let _hlPath = null;
+
         function highlightPath(p) {
             if (_hlPath && _hlPath !== p) _hlPath.classList.remove('lote-highlight');
             _hlPath = p;
             p.classList.add('lote-highlight');
         }
+
         function restoreHighlight() {
             if (_hlPath) _hlPath.classList.remove('lote-highlight');
             _hlPath = null;
         }
 
-        function tooltipHTML(loteId) {
-            const data = window._votosData && window._votosData[loteId];
-            const v = data ? (data.voto || '').toUpperCase() : '';
-            const estado = v === 'SI' ? '🟢 SÍ quiere pavimento'
-                         : v === 'NO' ? '🔴 NO quiere pavimento'
-                         : '⚪ Sin respuesta';
-            return 'Nombre: <b>' + (data && data.nombre   || '—') + '</b><br>' +
-                   'Teléfono: <b>' + (data && data.telefono || '—') + '</b><br>' +
-                   estado;
-        }
-
         function escucharClicks() {
             document.querySelectorAll('#map-inner path').forEach(p => {
-                // PC: hover tooltip
+
+                // Tooltip on hover (PC only)
                 p.addEventListener('mouseenter', () => {
-                    if (window.matchMedia('(pointer: coarse)').matches) return;
                     const tip = document.getElementById('tooltip');
-                    tip.innerHTML = tooltipHTML(p.id);
+                    const data = window._votosData && window._votosData[p.id];
+                    if (data) {
+                        const v = (data.voto || '').toUpperCase();
+                        const estado = v === 'SI' ? '🟢 SÍ quiere pavimento' : v === 'NO' ? '🔴 NO quiere pavimento' : '⚪ Sin respuesta';
+                        tip.innerHTML =
+                            'Nombre: <b>' + (data.nombre || '—') + '</b><br>' +
+                            'Teléfono: <b>' + (data.telefono || '—') + '</b><br>' +
+                            estado;
+                    } else {
+                        tip.innerHTML = 'Nombre: <b>—</b><br>Teléfono: <b>—</b><br>⚪ Sin respuesta';
+                    }
                     tip.style.display = 'block';
                 });
+
                 p.addEventListener('mousemove', (e) => {
-                    if (window.matchMedia('(pointer: coarse)').matches) return;
                     const tip = document.getElementById('tooltip');
-                    const x = e.clientX + 14, y = e.clientY + 14;
-                    tip.style.left = (x + tip.offsetWidth  > window.innerWidth  ? e.clientX - tip.offsetWidth  - 10 : x) + 'px';
-                    tip.style.top  = (y + tip.offsetHeight > window.innerHeight ? e.clientY - tip.offsetHeight - 10 : y) + 'px';
+                    const x = e.clientX + 14;
+                    const y = e.clientY + 14;
+                    // Keep tooltip inside viewport
+                    const tw = tip.offsetWidth;
+                    const th = tip.offsetHeight;
+                    tip.style.left = (x + tw > window.innerWidth  ? e.clientX - tw - 10 : x) + 'px';
+                    tip.style.top  = (y + th > window.innerHeight ? e.clientY - th - 10 : y) + 'px';
                 });
+
                 p.addEventListener('mouseleave', () => {
                     document.getElementById('tooltip').style.display = 'none';
                 });
 
                 p.addEventListener('click', async (e) => {
-                    if (window._panMoved > 8) return;
+                    if (window._panMoved > 12) return;
                     if (!p.id) return;
                     e.stopPropagation();
 
-                    const isMobile = window.matchMedia('(pointer: coarse)').matches;
+                    highlightPath(p);
+                    seleccionado = p.id;
+                    document.getElementById('nombre').value   = '';
+                    document.getElementById('telefono').value = '';
+                    document.getElementById('voto-select').value = 'NC';
 
-                    if (isMobile) {
-                        // Móvil: 1er toque = tooltip + botón Editar
-                        const tip = document.getElementById('tooltip');
-                        const sameOpen = tip.style.display === 'block' && tip.dataset.loteId === p.id;
-                        tip.style.display = 'none';
-                        tip.classList.remove('mobile');
-                        if (sameOpen) { restoreHighlight(); return; }
 
-                        highlightPath(p);
-                        tip.innerHTML = tooltipHTML(p.id) +
-                            '<button class="tip-edit-btn" onclick="abrirEdicion('' + p.id + '')">Editar</button>';
-                        tip.dataset.loteId = p.id;
-                        tip.classList.add('mobile');
-                        const hh = document.getElementById('header').offsetHeight;
-                        tip.style.left = '50%';
-                        tip.style.transform = 'translateX(-50%)';
-                        tip.style.top = (hh + 10) + 'px';
-                        tip.style.display = 'block';
 
-                        setTimeout(() => {
-                            const close = (ev) => {
-                                if (!tip.contains(ev.target) && ev.target !== p) {
-                                    tip.style.display = 'none';
-                                    tip.classList.remove('mobile');
-                                    restoreHighlight();
-                                    document.removeEventListener('pointerdown', close);
-                                }
-                            };
-                            document.addEventListener('pointerdown', close);
-                        }, 50);
-
-                    } else {
-                        // PC: abre modal directo
-                        await abrirEdicion(p.id);
+                    const { data } = await _supabase
+                        .from('votos').select('*').eq('lote_id', p.id).maybeSingle();
+                    if (data) {
+                        if (data.nombre)   document.getElementById('nombre').value   = data.nombre;
+                        if (data.telefono) document.getElementById('telefono').value = data.telefono;
+                        const v = (data.voto || '').toUpperCase();
+                        document.getElementById('voto-select').value =
+                            (v === 'SI' || v === 'NO') ? v : 'NC';
                     }
+                    document.getElementById('tooltip').style.display = 'none';
+                    document.getElementById('modal').style.display = 'flex';
                 });
             });
         }
 
-        async function abrirEdicion(loteId) {
-            const tip = document.getElementById('tooltip');
-            tip.style.display = 'none';
-            tip.classList.remove('mobile');
-            const p = document.getElementById(loteId);
-            if (p) highlightPath(p);
-            seleccionado = loteId;
-            document.getElementById('nombre').value = '';
-            document.getElementById('telefono').value = '';
-            document.getElementById('voto-select').value = 'NC';
-            const data = window._votosData && window._votosData[loteId];
-            if (data) {
-                if (data.nombre)   document.getElementById('nombre').value   = data.nombre;
-                if (data.telefono) document.getElementById('telefono').value = data.telefono;
-                const v = (data.voto || '').toUpperCase();
-                document.getElementById('voto-select').value = (v === 'SI' || v === 'NO') ? v : 'NC';
-            }
-            document.getElementById('modal').style.display = 'flex';
+        function cerrarModal() {
+            document.getElementById('modal').style.display = 'none';
+            restoreHighlight();
         }
-
-        function cerrarModal() { document.getElementById('modal').style.display = 'none'; }
 
         async function guardar() {
             const nombre = document.getElementById('nombre').value.trim();
