@@ -259,6 +259,19 @@
             font-family: 'IBM Plex Mono', monospace;
         }
 
+        #export-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--muted);
+            padding: 7px 14px;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-family: 'IBM Plex Mono', monospace;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        #export-btn:hover { color: var(--si); border-color: var(--si); }
+
         @media (max-width: 600px) {
             thead th, tbody td { padding: 10px 12px; }
             .td-lote { display: none; }
@@ -308,6 +321,7 @@
     <button class="filter-btn" data-filter="NC">— S/R</button>
     <span id="count-label"></span>
     <button id="refresh-btn">↻ Actualizar</button>
+    <button id="export-btn">⬇ Descargar CSV</button>
 </div>
 
 <div id="table-wrap">
@@ -416,6 +430,38 @@
         document.getElementById('s-nc').textContent    = nc;
     }
 
+    function exportCSV() {
+        if (allData.length === 0) { alert('No hay datos para exportar.'); return; }
+
+        const cols = ['lote_id', 'nombre', 'telefono', 'voto', 'updated_at'];
+        const headers = ['Lote', 'Nombre', 'Teléfono', 'Voto', 'Última modificación'];
+
+        const escape = v => {
+            if (v == null) return '';
+            const s = String(v);
+            return s.includes(',') || s.includes('"') || s.includes('\n')
+                ? '"' + s.replace(/"/g, '""') + '"'
+                : s;
+        };
+
+        const rows = [
+            headers.join(','),
+            ...allData.map(r => cols.map(c => escape(r[c])).join(','))
+        ];
+
+        const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        const now  = new Date();
+        const ts   = now.getFullYear() + '-' +
+                     String(now.getMonth()+1).padStart(2,'0') + '-' +
+                     String(now.getDate()).padStart(2,'0');
+        a.href     = url;
+        a.download = 'pavimento_maiten_' + ts + '.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
     async function cargar() {
         document.getElementById('status-row').style.display = 'block';
         document.getElementById('status-row').textContent = 'Cargando…';
@@ -475,6 +521,7 @@
 
     // Refresh
     document.getElementById('refresh-btn').addEventListener('click', cargar);
+    document.getElementById('export-btn').addEventListener('click', exportCSV);
 
     // Auto-refresh cada 30 segundos
     setInterval(cargar, 30000);
