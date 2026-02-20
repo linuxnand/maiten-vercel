@@ -583,6 +583,16 @@
                 window._panMoved += Math.abs(e.clientX - prev.x) + Math.abs(e.clientY - prev.y);
                 pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
+                // Cerrar tooltip móvil en cuanto se detecta desplazamiento real
+                if (window._panMoved > 12) {
+                    const tip = document.getElementById('tooltip');
+                    if (tip.classList.contains('mobile-tip')) {
+                        tip.style.display = 'none';
+                        tip.classList.remove('mobile-tip');
+                        restoreHighlight();
+                    }
+                }
+
                 if (pts.size === 2) {
                     const p0 = container._pinch;
                     if (!p0) return;
