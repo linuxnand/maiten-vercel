@@ -91,6 +91,24 @@
             max-width: 220px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.4);
         }
+        #tooltip.mobile {
+            pointer-events: auto;  /* enable touch on mobile tooltip */
+        }
+        #tooltip .tip-edit-btn {
+            display: block;
+            width: 100%;
+            margin-top: 8px;
+            padding: 5px 0;
+            background: #222;
+            color: #fff;
+            border: 1px solid #555;
+            border-radius: 5px;
+            font-size: 0.82rem;
+            font-family: inherit;
+            text-align: center;
+            cursor: pointer;
+        }
+        #tooltip .tip-edit-btn:active { background: #444; }
 
         /* ── MODAL ── */
         .modal {
@@ -361,27 +379,79 @@
                     if (!p.id) return;
                     e.stopPropagation();
 
-                    highlightPath(p);
-                    seleccionado = p.id;
-                    document.getElementById('nombre').value   = '';
-                    document.getElementById('telefono').value = '';
-                    document.getElementById('voto-select').value = 'NC';
+                    const isMobile = window.matchMedia('(pointer: coarse)').matches;
 
+                    if (isMobile) {
+                        // Móvil: primer toque muestra tooltip con botón Editar
+                        const tip = document.getElementById('tooltip');
+                        const alreadyOpen = tip.style.display === 'block' && tip.dataset.loteId === p.id;
+                        // Close any open tooltip from another lote
+                        tip.style.display = 'none';
+                        tip.classList.remove('mobile');
+                        if (alreadyOpen) return; // segundo toque en mismo lote = cerrar
 
+                        highlightPath(p);
+                        const data = window._votosData && window._votosData[p.id];
+                        const v = data ? (data.voto || '').toUpperCase() : '';
+                        const estado = v === 'SI' ? '🟢 SÍ quiere pavimento' : v === 'NO' ? '🔴 NO quiere pavimento' : '⚪ Sin respuesta';
+                        tip.innerHTML =
+                            'Nombre: <b>' + (data && data.nombre   || '—') + '</b><br>' +
+                            'Teléfono: <b>' + (data && data.telefono || '—') + '</b><br>' +
+                            estado +
+                            '<button class="tip-edit-btn" onclick="abrirEdicion('' + p.id + '');">Editar</button>';
+                        tip.dataset.loteId = p.id;
+                        tip.classList.add('mobile');
 
-                    const { data } = await _supabase
-                        .from('votos').select('*').eq('lote_id', p.id).maybeSingle();
-                    if (data) {
-                        if (data.nombre)   document.getElementById('nombre').value   = data.nombre;
-                        if (data.telefono) document.getElementById('telefono').value = data.telefono;
-                        const v = (data.voto || '').toUpperCase();
-                        document.getElementById('voto-select').value =
-                            (v === 'SI' || v === 'NO') ? v : 'NC';
+                        // Position near top-center of screen, below header
+                        const header = document.getElementById('header');
+                        tip.style.left = '50%';
+                        tip.style.transform = 'translateX(-50%)';
+                        tip.style.top = (header.offsetHeight + 10) + 'px';
+                        tip.style.display = 'block';
+
+                        // Close tooltip if user taps outside
+                        setTimeout(() => {
+                            const closeOutside = (ev) => {
+                                if (!tip.contains(ev.target) && ev.target !== p) {
+                                    tip.style.display = 'none';
+                                    tip.classList.remove('mobile');
+                                    restoreHighlight();
+                                    document.removeEventListener('pointerdown', closeOutside);
+                                }
+                            };
+                            document.addEventListener('pointerdown', closeOutside);
+                        }, 50);
+
+                    } else {
+                        // PC: click abre modal directo (comportamiento anterior)
+                        await abrirEdicion(p.id);
                     }
-                    document.getElementById('tooltip').style.display = 'none';
-                    document.getElementById('modal').style.display = 'flex';
                 });
             });
+        }
+
+        async function abrirEdicion(loteId) {
+            // Hide tooltip
+            const tip = document.getElementById('tooltip');
+            tip.style.display = 'none';
+            tip.classList.remove('mobile');
+
+            const p = document.getElementById(loteId);
+            if (p) highlightPath(p);
+            seleccionado = loteId;
+
+            document.getElementById('nombre').value = '';
+            document.getElementById('telefono').value = '';
+            document.getElementById('voto-select').value = 'NC';
+
+            const data = window._votosData && window._votosData[loteId];
+            if (data) {
+                if (data.nombre)   document.getElementById('nombre').value   = data.nombre;
+                if (data.telefono) document.getElementById('telefono').value = data.telefono;
+                const v = (data.voto || '').toUpperCase();
+                document.getElementById('voto-select').value = (v === 'SI' || v === 'NO') ? v : 'NC';
+            }
+            document.getElementById('modal').style.display = 'flex';
         }
 
         function cerrarModal() {
