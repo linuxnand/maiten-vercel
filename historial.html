@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="darkreader-lock">
+    <meta name="color-scheme" content="only light">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial — Pavimento El Maitén</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;700&display=swap');
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:       #0d0d0d;
+            --surface:  #161616;
+            --border:   #2a2a2a;
+            --text:     #e8e8e8;
+            --muted:    #666;
+            --si:       #2ecc71;
+            --no:       #ff4136;
+            --nc:       #888;
+            --accent:   #f5c400;
+        }
+
+        html, body {
+            min-height: 100%;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'IBM Plex Sans', sans-serif;
+        }
+
+        /* ── HEADER ── */
+        header {
+            background: #000;
+            border-bottom: 1px solid var(--border);
+            padding: 18px 24px 16px;
+            display: flex;
+            align-items: baseline;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        header h1 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            color: var(--text);
+        }
+        header h1 span {
+            color: var(--accent);
+            font-family: 'IBM Plex Mono', monospace;
+        }
+        .back-link {
+            margin-left: auto;
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-family: 'IBM Plex Mono', monospace;
+            border: 1px solid var(--border);
+            padding: 5px 12px;
+            border-radius: 4px;
+            transition: color 0.15s, border-color 0.15s;
+        }
+        .back-link:hover { color: var(--text); border-color: #555; }
+
+        /* ── STATS BAR ── */
+        #stats-bar {
+            display: flex;
+            gap: 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .stat-item {
+            flex: 1;
+            padding: 14px 20px;
+            border-right: 1px solid var(--border);
+            font-family: 'IBM Plex Mono', monospace;
+        }
+        .stat-item:last-child { border-right: none; }
+        .stat-label {
+            font-size: 0.7rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 4px;
+        }
+        .stat-num {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        .stat-num.si { color: var(--si); }
+        .stat-num.no { color: var(--no); }
+        .stat-num.nc { color: var(--nc); }
+        .stat-num.total { color: var(--accent); }
+
+        /* ── CONTROLS ── */
+        #controls {
+            padding: 14px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        #search {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            padding: 8px 14px;
+            font-size: 0.88rem;
+            font-family: 'IBM Plex Sans', sans-serif;
+            width: 220px;
+            outline: none;
+        }
+        #search:focus { border-color: var(--accent); }
+        #search::placeholder { color: var(--muted); }
+
+        .filter-btn {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--muted);
+            padding: 7px 14px;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-family: 'IBM Plex Mono', monospace;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .filter-btn:hover { border-color: #555; color: var(--text); }
+        .filter-btn.active-si  { border-color: var(--si);  color: var(--si);  background: rgba(46,204,113,0.08); }
+        .filter-btn.active-no  { border-color: var(--no);  color: var(--no);  background: rgba(255,65,54,0.08); }
+        .filter-btn.active-nc  { border-color: var(--nc);  color: var(--nc);  background: rgba(136,136,136,0.08); }
+        .filter-btn.active-all { border-color: var(--accent); color: var(--accent); background: rgba(245,196,0,0.08); }
+
+        #refresh-btn {
+            margin-left: auto;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--muted);
+            padding: 7px 14px;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-family: 'IBM Plex Mono', monospace;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        #refresh-btn:hover { color: var(--text); border-color: #555; }
+
+        #count-label {
+            font-size: 0.78rem;
+            color: var(--muted);
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        /* ── TABLE ── */
+        #table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+        }
+        thead th {
+            background: var(--surface);
+            color: var(--muted);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 600;
+            font-family: 'IBM Plex Mono', monospace;
+            padding: 10px 20px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
+        }
+        thead th:hover { color: var(--text); }
+        thead th.sorted { color: var(--accent); }
+
+        tbody tr {
+            border-bottom: 1px solid #1e1e1e;
+            transition: background 0.1s;
+        }
+        tbody tr:hover { background: #1a1a1a; }
+
+        tbody td {
+            padding: 11px 20px;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        /* Lote ID */
+        .td-lote {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.78rem;
+            color: var(--muted);
+        }
+
+        /* Voto badge */
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            font-family: 'IBM Plex Mono', monospace;
+            letter-spacing: 0.04em;
+        }
+        .badge-si  { background: rgba(46,204,113,0.15); color: var(--si);  border: 1px solid rgba(46,204,113,0.3); }
+        .badge-no  { background: rgba(255,65,54,0.15);  color: var(--no);  border: 1px solid rgba(255,65,54,0.3);  }
+        .badge-nc  { background: rgba(136,136,136,0.1); color: var(--nc);  border: 1px solid rgba(136,136,136,0.2);}
+
+        /* Fecha */
+        .td-fecha {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.78rem;
+            color: var(--muted);
+        }
+        .td-fecha .date { color: var(--text); }
+        .td-fecha .time { color: var(--muted); margin-left: 6px; }
+
+        /* Nombre */
+        .td-nombre { font-weight: 500; }
+        .td-nombre.empty { color: var(--muted); font-style: italic; font-weight: 400; }
+
+        /* Teléfono */
+        .td-tel { font-family: 'IBM Plex Mono', monospace; font-size: 0.82rem; }
+        .td-tel.empty { color: var(--muted); font-style: italic; }
+
+        /* ── EMPTY / LOADING ── */
+        #status-row {
+            padding: 60px 20px;
+            text-align: center;
+            color: var(--muted);
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.88rem;
+        }
+
+        /* ── NO updated_at warning ── */
+        #no-ts-warning {
+            display: none;
+            margin: 16px 24px;
+            padding: 12px 16px;
+            background: rgba(245,196,0,0.08);
+            border: 1px solid rgba(245,196,0,0.3);
+            border-radius: 6px;
+            font-size: 0.83rem;
+            color: var(--accent);
+            line-height: 1.6;
+        }
+        #no-ts-warning code {
+            background: rgba(245,196,0,0.15);
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        @media (max-width: 600px) {
+            thead th, tbody td { padding: 10px 12px; }
+            .td-lote { display: none; }
+            #search { width: 150px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Pavimento El Maitén &mdash; <span>Historial</span></h1>
+    <a href="index.html" class="back-link">← Volver al mapa</a>
+</header>
+
+<div id="stats-bar">
+    <div class="stat-item">
+        <div class="stat-label">Total registros</div>
+        <div class="stat-num total" id="s-total">—</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-label">SÍ</div>
+        <div class="stat-num si" id="s-si">—</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-label">NO</div>
+        <div class="stat-num no" id="s-no">—</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-label">Sin respuesta</div>
+        <div class="stat-num nc" id="s-nc">—</div>
+    </div>
+</div>
+
+<div id="no-ts-warning">
+    ⚠️ La tabla no tiene columna <code>updated_at</code> — no se puede ordenar por fecha de cambio.<br>
+    Para activar el historial completo, ejecutá en Supabase SQL Editor:<br><br>
+    <code>ALTER TABLE votos ADD COLUMN updated_at timestamptz DEFAULT now();</code><br>
+    <code>CREATE OR REPLACE FUNCTION set_updated_at() RETURNS trigger AS $$ BEGIN NEW.updated_at = now(); RETURN NEW; END; $$ LANGUAGE plpgsql;</code><br>
+    <code>CREATE TRIGGER votos_updated_at BEFORE UPDATE ON votos FOR EACH ROW EXECUTE FUNCTION set_updated_at();</code>
+</div>
+
+<div id="controls">
+    <input type="text" id="search" placeholder="Buscar nombre o lote…">
+    <button class="filter-btn active-all" data-filter="all">Todos</button>
+    <button class="filter-btn" data-filter="SI">✓ SÍ</button>
+    <button class="filter-btn" data-filter="NO">✗ NO</button>
+    <button class="filter-btn" data-filter="NC">— S/R</button>
+    <span id="count-label"></span>
+    <button id="refresh-btn">↻ Actualizar</button>
+</div>
+
+<div id="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th data-col="updated_at" class="sorted">Fecha <span id="sort-arrow">↓</span></th>
+                <th data-col="lote_id">Lote</th>
+                <th data-col="nombre">Nombre</th>
+                <th data-col="telefono">Teléfono</th>
+                <th data-col="voto">Voto</th>
+            </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+    </table>
+    <div id="status-row">Cargando…</div>
+</div>
+
+<script>
+    const SB_URL = 'https://jhevntzswmuwxpcqvdje.supabase.co';
+    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpoZXZudHpzd211d3hwY3F2ZGplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzNTE0NzAsImV4cCI6MjA4NjkyNzQ3MH0.i4Xn1TA9knS1a_3_3AoTrobfEg549kBf7iSK9E4Pj3g';
+    const sb = window.supabase.createClient(SB_URL, SB_KEY);
+
+    let allData    = [];
+    let sortCol    = 'updated_at';
+    let sortAsc    = false;
+    let filterVoto = 'all';
+    let searchQ    = '';
+    let hasTs      = false;
+
+    function fmtFecha(ts) {
+        if (!ts) return '<span class="td-fecha"><span class="date" style="color:var(--muted)">sin fecha</span></span>';
+        const d = new Date(ts);
+        const fecha = d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        const hora  = d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+        return `<span class="td-fecha"><span class="date">${fecha}</span><span class="time">${hora}</span></span>`;
+    }
+
+    function badgeVoto(v) {
+        const u = (v || '').toUpperCase();
+        if (u === 'SI')  return '<span class="badge badge-si">SÍ</span>';
+        if (u === 'NO')  return '<span class="badge badge-no">NO</span>';
+        return '<span class="badge badge-nc">S/R</span>';
+    }
+
+    function renderTable() {
+        let rows = [...allData];
+
+        // Filter by voto
+        if (filterVoto !== 'all') {
+            rows = rows.filter(r => (r.voto || 'NC').toUpperCase() === filterVoto);
+        }
+
+        // Filter by search
+        if (searchQ) {
+            const q = searchQ.toLowerCase();
+            rows = rows.filter(r =>
+                (r.nombre   || '').toLowerCase().includes(q) ||
+                (r.lote_id  || '').toLowerCase().includes(q) ||
+                (r.telefono || '').toLowerCase().includes(q)
+            );
+        }
+
+        // Sort
+        rows.sort((a, b) => {
+            let va = a[sortCol] || '';
+            let vb = b[sortCol] || '';
+            if (typeof va === 'string') va = va.toLowerCase();
+            if (typeof vb === 'string') vb = vb.toLowerCase();
+            if (va < vb) return sortAsc ? -1 : 1;
+            if (va > vb) return sortAsc ? 1 : -1;
+            return 0;
+        });
+
+        const tbody = document.getElementById('tbody');
+        const status = document.getElementById('status-row');
+
+        if (rows.length === 0) {
+            tbody.innerHTML = '';
+            status.style.display = 'block';
+            status.textContent = allData.length === 0 ? 'No hay registros.' : 'Sin resultados para ese filtro.';
+        } else {
+            status.style.display = 'none';
+            tbody.innerHTML = rows.map(r => `
+                <tr>
+                    <td>${fmtFecha(r.updated_at)}</td>
+                    <td class="td-lote">${r.lote_id || '—'}</td>
+                    <td class="td-nombre ${r.nombre ? '' : 'empty'}">${r.nombre || 'sin nombre'}</td>
+                    <td class="td-tel ${r.telefono ? '' : 'empty'}">${r.telefono || '—'}</td>
+                    <td>${badgeVoto(r.voto)}</td>
+                </tr>
+            `).join('');
+        }
+
+        document.getElementById('count-label').textContent = `${rows.length} registro${rows.length !== 1 ? 's' : ''}`;
+    }
+
+    function updateStats() {
+        const total = allData.length;
+        const si    = allData.filter(r => (r.voto||'').toUpperCase() === 'SI').length;
+        const no    = allData.filter(r => (r.voto||'').toUpperCase() === 'NO').length;
+        const nc    = allData.filter(r => !['SI','NO'].includes((r.voto||'').toUpperCase())).length;
+        document.getElementById('s-total').textContent = total;
+        document.getElementById('s-si').textContent    = si;
+        document.getElementById('s-no').textContent    = no;
+        document.getElementById('s-nc').textContent    = nc;
+    }
+
+    async function cargar() {
+        document.getElementById('status-row').style.display = 'block';
+        document.getElementById('status-row').textContent = 'Cargando…';
+        document.getElementById('tbody').innerHTML = '';
+
+        const { data, error } = await sb.from('votos').select('*');
+        if (error) {
+            document.getElementById('status-row').textContent = '❌ Error: ' + error.message;
+            return;
+        }
+
+        allData = data || [];
+
+        // Check if updated_at exists
+        hasTs = allData.length === 0 || allData[0].updated_at !== undefined;
+        if (!hasTs) {
+            document.getElementById('no-ts-warning').style.display = 'block';
+            sortCol = 'lote_id';
+            sortAsc = true;
+        }
+
+        updateStats();
+        renderTable();
+    }
+
+    // Sort on header click
+    document.querySelectorAll('thead th[data-col]').forEach(th => {
+        th.addEventListener('click', () => {
+            const col = th.dataset.col;
+            if (sortCol === col) sortAsc = !sortAsc;
+            else { sortCol = col; sortAsc = false; }
+            document.querySelectorAll('thead th').forEach(t => t.classList.remove('sorted'));
+            th.classList.add('sorted');
+            document.getElementById('sort-arrow').remove();
+            th.innerHTML += ` <span id="sort-arrow">${sortAsc ? '↑' : '↓'}</span>`;
+            renderTable();
+        });
+    });
+
+    // Filter buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            filterVoto = btn.dataset.filter;
+            document.querySelectorAll('.filter-btn').forEach(b => {
+                b.className = 'filter-btn';
+            });
+            btn.classList.add('filter-btn', 'active-' + (filterVoto === 'all' ? 'all' : filterVoto.toLowerCase()));
+            renderTable();
+        });
+    });
+
+    // Search
+    document.getElementById('search').addEventListener('input', e => {
+        searchQ = e.target.value.trim();
+        renderTable();
+    });
+
+    // Refresh
+    document.getElementById('refresh-btn').addEventListener('click', cargar);
+
+    // Auto-refresh cada 30 segundos
+    setInterval(cargar, 30000);
+
+    cargar();
+</script>
+</body>
+</html>
