@@ -426,10 +426,15 @@
 
                         highlightPath(p);
 
+                        // Deshabilitar clicks en paths mientras el tooltip está abierto
+                        document.querySelectorAll('#map-inner path').forEach(pp => pp.style.pointerEvents = 'none');
+
                         // Botón Editar: event delegation en el tooltip
                         tip.onclick = (ev) => {
                             if (ev.target.classList.contains('tip-edit-btn')) {
                                 ev.stopPropagation();
+                                // Re-habilitar paths antes de abrir modal
+                                document.querySelectorAll('#map-inner path').forEach(pp => pp.style.pointerEvents = '');
                                 abrirModal(tip.dataset.loteId);
                             }
                         };
@@ -438,6 +443,16 @@
                         setTimeout(() => {
                             const cerrar = (ev) => {
                                 if (!tip.contains(ev.target)) {
+                                    tip.style.display = 'none';
+                                    tip.classList.remove('mobile-tip');
+                                    restoreHighlight();
+                                    // Re-habilitar paths
+                                    document.querySelectorAll('#map-inner path').forEach(pp => pp.style.pointerEvents = '');
+                                    document.removeEventListener('pointerdown', cerrar);
+                                }
+                            };
+                            document.addEventListener('pointerdown', cerrar);
+                        }, 300);
                                     tip.style.display = 'none';
                                     tip.classList.remove('mobile-tip');
                                     restoreHighlight();
