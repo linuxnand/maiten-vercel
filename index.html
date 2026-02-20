@@ -446,16 +446,7 @@
                                     tip.style.display = 'none';
                                     tip.classList.remove('mobile-tip');
                                     restoreHighlight();
-                                    // Re-habilitar paths
                                     document.querySelectorAll('#map-inner path').forEach(pp => pp.style.pointerEvents = '');
-                                    document.removeEventListener('pointerdown', cerrar);
-                                }
-                            };
-                            document.addEventListener('pointerdown', cerrar);
-                        }, 300);
-                                    tip.style.display = 'none';
-                                    tip.classList.remove('mobile-tip');
-                                    restoreHighlight();
                                     document.removeEventListener('pointerdown', cerrar);
                                 }
                             };
