@@ -405,13 +405,34 @@
                             'Nombre: <b>' + (d && d.nombre   || '—') + '</b><br>' +
                             'Teléfono: <b>' + (d && d.telefono || '—') + '</b><br>' +
                             estado +
-                            '<button class="tip-edit-btn" onclick="abrirModal(\'' + p.id + '\')">Editar</button>';
+                            '<button class="tip-edit-btn" id="tip-edit-btn-inner">Editar</button>';
                         tip.dataset.loteId = p.id;
                         tip.classList.add('mobile-tip');
-                        tip.style.top = (document.getElementById('header').offsetHeight + 12) + 'px';
-                        tip.style.display = 'block';
+
+                        // Posicionar cerca del polígono tocado
+                        const rect = p.getBoundingClientRect();
+                        tip.style.display = 'block'; // mostrar para medir altura
+                        const tipH = tip.offsetHeight;
+                        const tipW = tip.offsetWidth;
+                        // Intentar poner encima del polígono, sino abajo
+                        let topPos = rect.top - tipH - 10;
+                        if (topPos < 60) topPos = rect.bottom + 10;
+                        // Centrar horizontalmente sobre el polígono
+                        let leftPos = rect.left + rect.width / 2 - tipW / 2;
+                        leftPos = Math.max(8, Math.min(leftPos, window.innerWidth - tipW - 8));
+                        tip.style.top  = topPos + 'px';
+                        tip.style.left = leftPos + 'px';
+                        tip.style.transform = 'none';
+
                         highlightPath(p);
-                        // Cerrar si toca fuera
+
+                        // Botón Editar: usar addEventListener para evitar conflicto con cierre
+                        document.getElementById('tip-edit-btn-inner').addEventListener('click', (ev) => {
+                            ev.stopPropagation();
+                            abrirModal(p.id);
+                        });
+
+                        // Cerrar si toca fuera (con delay para no capturar el toque actual)
                         setTimeout(() => {
                             const cerrar = (ev) => {
                                 if (!tip.contains(ev.target)) {
@@ -422,7 +443,7 @@
                                 }
                             };
                             document.addEventListener('pointerdown', cerrar);
-                        }, 100);
+                        }, 300);
 
                     } else {
                         // PC: abrir modal directo (igual que antes)
