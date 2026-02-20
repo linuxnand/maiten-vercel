@@ -93,15 +93,8 @@
         }
 
         /* ── TOOLTIP MÓVIL ── */
-        #tip-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            z-index: 998;
-        }
         #tooltip.mobile-tip {
             pointer-events: auto;
-            z-index: 999;
             max-width: 260px;
             width: 260px;
         }
@@ -214,7 +207,6 @@
         <div id="map-inner"></div>
     </div>
 
-    <div id="tip-overlay" onclick="cerrarTooltip()"></div>
     <div id="tooltip"></div>
 
     <div class="modal" id="modal">
@@ -354,30 +346,25 @@
         function escucharClicks() {
             document.querySelectorAll('#map-inner path').forEach(p => {
 
-                // Tooltip on hover (PC only)
+                // Tooltip on hover (PC only — skip all mouse events on touch screens)
                 p.addEventListener('mouseenter', () => {
+                    if (window.matchMedia('(pointer: coarse)').matches) return;
                     const tip = document.getElementById('tooltip');
                     const data = window._votosData && window._votosData[p.id];
-                    if (data) {
-                        const v = (data.voto || '').toUpperCase();
-                        const estado = v === 'SI' ? '🟢 SÍ quiere pavimento' : v === 'NO' ? '🔴 NO quiere pavimento' : '⚪ Sin respuesta';
-                        tip.innerHTML =
-                            'Nombre: <b>' + (data.nombre || '—') + '</b><br>' +
-                            'Teléfono: <b>' + (data.telefono || '—') + '</b><br>' +
-                            estado;
-                    } else {
-                        tip.innerHTML = 'Nombre: <b>—</b><br>Teléfono: <b>—</b><br>⚪ Sin respuesta';
-                    }
+                    const v = data ? (data.voto || '').toUpperCase() : '';
+                    const estado = v === 'SI' ? '🟢 SÍ quiere pavimento' : v === 'NO' ? '🔴 NO quiere pavimento' : '⚪ Sin respuesta';
+                    tip.innerHTML =
+                        'Nombre: <b>' + (data && data.nombre || '—') + '</b><br>' +
+                        'Teléfono: <b>' + (data && data.telefono || '—') + '</b><br>' +
+                        estado;
                     tip.style.display = 'block';
                 });
 
                 p.addEventListener('mousemove', (e) => {
+                    if (window.matchMedia('(pointer: coarse)').matches) return;
                     const tip = document.getElementById('tooltip');
-                    const x = e.clientX + 14;
-                    const y = e.clientY + 14;
-                    // Keep tooltip inside viewport
-                    const tw = tip.offsetWidth;
-                    const th = tip.offsetHeight;
+                    const x = e.clientX + 14, y = e.clientY + 14;
+                    const tw = tip.offsetWidth, th = tip.offsetHeight;
                     tip.style.left = (x + tw > window.innerWidth  ? e.clientX - tw - 10 : x) + 'px';
                     tip.style.top  = (y + th > window.innerHeight ? e.clientY - th - 10 : y) + 'px';
                 });
@@ -392,16 +379,17 @@
                     if (!p.id) return;
                     e.stopPropagation();
 
-                    const isMobile = window.matchMedia('(pointer: coarse)').matches;
-
-                    if (isMobile) {
-                        // Cerrar si ya estaba abierto para este lote
+                    if (window.matchMedia('(pointer: coarse)').matches) {
+                        // ── MÓVIL ──
                         const tip = document.getElementById('tooltip');
-                        if (tip.classList.contains('mobile-tip') && tip.dataset.loteId === p.id) {
-                            cerrarTooltip();
-                            return;
-                        }
-                        cerrarTooltip(); // cerrar cualquier tooltip anterior
+                        const yaAbierto = tip.classList.contains('mobile-tip') && tip.dataset.loteId === p.id;
+
+                        // Siempre cerrar tooltip anterior primero
+                        tip.style.display = 'none';
+                        tip.classList.remove('mobile-tip');
+                        restoreHighlight();
+
+                        if (yaAbierto) return; // segundo toque en mismo lote = cerrar
 
                         // Construir contenido
                         const d = window._votosData && window._votosData[p.id];
@@ -420,8 +408,7 @@
                         // Posicionar cerca del polígono
                         tip.style.display = 'block';
                         const rect = p.getBoundingClientRect();
-                        const tipH = tip.offsetHeight;
-                        const tipW = tip.offsetWidth;
+                        const tipH = tip.offsetHeight, tipW = tip.offsetWidth;
                         let topPos = rect.top - tipH - 10;
                         if (topPos < 60) topPos = rect.bottom + 10;
                         let leftPos = rect.left + rect.width / 2 - tipW / 2;
@@ -429,13 +416,10 @@
                         tip.style.top  = topPos + 'px';
                         tip.style.left = leftPos + 'px';
                         tip.style.transform = 'none';
-
-                        // Overlay transparente para cerrar al tocar afuera
-                        document.getElementById('tip-overlay').style.display = 'block';
                         highlightPath(p);
 
                     } else {
-                        // PC: abrir modal directo
+                        // ── PC: abrir modal directo ──
                         highlightPath(p);
                         seleccionado = p.id;
                         document.getElementById('nombre').value   = '';
@@ -457,16 +441,11 @@
             });
         }
 
-        function cerrarTooltip() {
+        async function abrirModal(loteId) {
+            // Cerrar tooltip
             const tip = document.getElementById('tooltip');
             tip.style.display = 'none';
             tip.classList.remove('mobile-tip');
-            document.getElementById('tip-overlay').style.display = 'none';
-            restoreHighlight();
-        }
-
-        async function abrirModal(loteId) {
-            cerrarTooltip();
             seleccionado = loteId;
             const p = document.getElementById(loteId);
             if (p) highlightPath(p);
@@ -485,6 +464,9 @@
 
         function cerrarModal() {
             document.getElementById('modal').style.display = 'none';
+            const tip = document.getElementById('tooltip');
+            tip.style.display = 'none';
+            tip.classList.remove('mobile-tip');
             restoreHighlight();
         }
 
