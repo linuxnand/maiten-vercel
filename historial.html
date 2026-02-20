@@ -433,8 +433,9 @@
     function exportCSV() {
         if (allData.length === 0) { alert('No hay datos para exportar.'); return; }
 
-        const cols = ['lote_id', 'nombre', 'telefono', 'voto', 'updated_at'];
-        const headers = ['Lote', 'Nombre', 'Teléfono', 'Voto', 'Última modificación'];
+        // Mismo orden que el CSV original para reimportar a Supabase sin problemas
+        const cols = ['nombre', 'telefono', 'voto', 'lote_id', 'updated_at'];
+        const headers = ['nombre', 'telefono', 'voto', 'lote_id', 'updated_at'];
 
         const escape = v => {
             if (v == null) return '';
