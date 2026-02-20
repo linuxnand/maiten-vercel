@@ -405,7 +405,7 @@
                             'Nombre: <b>' + (d && d.nombre   || '—') + '</b><br>' +
                             'Teléfono: <b>' + (d && d.telefono || '—') + '</b><br>' +
                             estado +
-                            '<button class="tip-edit-btn" onclick="abrirModal('' + p.id + '')">Editar</button>';
+                            '<button class="tip-edit-btn" onclick="abrirModal(\'' + p.id + '\')">Editar</button>';
                         tip.dataset.loteId = p.id;
                         tip.classList.add('mobile-tip');
                         tip.style.top = (document.getElementById('header').offsetHeight + 12) + 'px';
