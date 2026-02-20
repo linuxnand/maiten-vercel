@@ -91,10 +91,17 @@
             max-width: 220px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.4);
         }
+
+        /* ── TOOLTIP MÓVIL ── */
+        #tip-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 998;
+        }
         #tooltip.mobile-tip {
             pointer-events: auto;
-            left: 50% !important;
-            transform: translateX(-50%);
+            z-index: 999;
             max-width: 260px;
             width: 260px;
         }
@@ -207,6 +214,7 @@
         <div id="map-inner"></div>
     </div>
 
+    <div id="tip-overlay" onclick="cerrarTooltip()"></div>
     <div id="tooltip"></div>
 
     <div class="modal" id="modal">
@@ -386,16 +394,15 @@
                     const isMobile = window.matchMedia('(pointer: coarse)').matches;
 
                     if (isMobile) {
-                        // Móvil: mostrar tooltip con datos + botón Editar
+                        // Cerrar si ya estaba abierto para este lote
                         const tip = document.getElementById('tooltip');
-                        // Si ya está abierto para este mismo lote, cerrarlo
                         if (tip.classList.contains('mobile-tip') && tip.dataset.loteId === p.id) {
-                            tip.style.display = 'none';
-                            tip.classList.remove('mobile-tip');
-                            restoreHighlight();
+                            cerrarTooltip();
                             return;
                         }
-                        // Armar contenido del tooltip
+                        cerrarTooltip(); // cerrar cualquier tooltip anterior
+
+                        // Construir contenido
                         const d = window._votosData && window._votosData[p.id];
                         const v = d ? (d.voto || '').toUpperCase() : '';
                         const estado = v === 'SI' ? '🟢 SÍ quiere pavimento'
@@ -405,73 +412,66 @@
                             'Nombre: <b>' + (d && d.nombre   || '—') + '</b><br>' +
                             'Teléfono: <b>' + (d && d.telefono || '—') + '</b><br>' +
                             estado +
-                            '<button class="tip-edit-btn" id="tip-edit-btn-inner">Editar</button>';
+                            '<button class="tip-edit-btn" data-lote="' + p.id + '" onclick="abrirModal(this.dataset.lote)">Editar</button>';
                         tip.dataset.loteId = p.id;
                         tip.classList.add('mobile-tip');
 
-                        // Posicionar cerca del polígono tocado
+                        // Posicionar cerca del polígono
+                        tip.style.display = 'block';
                         const rect = p.getBoundingClientRect();
-                        tip.style.display = 'block'; // mostrar para medir altura
                         const tipH = tip.offsetHeight;
                         const tipW = tip.offsetWidth;
-                        // Intentar poner encima del polígono, sino abajo
                         let topPos = rect.top - tipH - 10;
                         if (topPos < 60) topPos = rect.bottom + 10;
-                        // Centrar horizontalmente sobre el polígono
                         let leftPos = rect.left + rect.width / 2 - tipW / 2;
                         leftPos = Math.max(8, Math.min(leftPos, window.innerWidth - tipW - 8));
                         tip.style.top  = topPos + 'px';
                         tip.style.left = leftPos + 'px';
                         tip.style.transform = 'none';
 
+                        // Overlay transparente para cerrar al tocar afuera
+                        document.getElementById('tip-overlay').style.display = 'block';
                         highlightPath(p);
 
-                        // Deshabilitar clicks en paths mientras el tooltip está abierto
-                        document.querySelectorAll('#map-inner path').forEach(pp => pp.style.pointerEvents = 'none');
-
-                        // Botón Editar: event delegation en el tooltip
-                        tip.onclick = (ev) => {
-                            if (ev.target.classList.contains('tip-edit-btn')) {
-                                ev.stopPropagation();
-                                // Re-habilitar paths antes de abrir modal
-                                document.querySelectorAll('#map-inner path').forEach(pp => pp.style.pointerEvents = '');
-                                abrirModal(tip.dataset.loteId);
-                            }
-                        };
-
-                        // Cerrar si toca fuera — usar touchend para evitar conflicto con el toque actual
-                        const cerrar = (ev) => {
-                            if (!tip.contains(ev.target)) {
-                                tip.style.display = 'none';
-                                tip.classList.remove('mobile-tip');
-                                restoreHighlight();
-                                document.querySelectorAll('#map-inner path').forEach(pp => pp.style.pointerEvents = '');
-                                document.removeEventListener('touchend', cerrar);
-                            }
-                        };
-                        setTimeout(() => {
-                            document.addEventListener('touchend', cerrar);
-                        }, 50);
-
                     } else {
-                        // PC: abrir modal directo (igual que antes)
-                        await abrirModal(p.id);
+                        // PC: abrir modal directo
+                        highlightPath(p);
+                        seleccionado = p.id;
+                        document.getElementById('nombre').value   = '';
+                        document.getElementById('telefono').value = '';
+                        document.getElementById('voto-select').value = 'NC';
+                        const { data } = await _supabase
+                            .from('votos').select('*').eq('lote_id', p.id).maybeSingle();
+                        if (data) {
+                            if (data.nombre)   document.getElementById('nombre').value   = data.nombre;
+                            if (data.telefono) document.getElementById('telefono').value = data.telefono;
+                            const v = (data.voto || '').toUpperCase();
+                            document.getElementById('voto-select').value =
+                                (v === 'SI' || v === 'NO') ? v : 'NC';
+                        }
+                        document.getElementById('tooltip').style.display = 'none';
+                        document.getElementById('modal').style.display = 'flex';
                     }
                 });
             });
         }
 
-        async function abrirModal(loteId) {
+        function cerrarTooltip() {
             const tip = document.getElementById('tooltip');
             tip.style.display = 'none';
             tip.classList.remove('mobile-tip');
+            document.getElementById('tip-overlay').style.display = 'none';
+            restoreHighlight();
+        }
+
+        async function abrirModal(loteId) {
+            cerrarTooltip();
             seleccionado = loteId;
             const p = document.getElementById(loteId);
             if (p) highlightPath(p);
             document.getElementById('nombre').value   = '';
             document.getElementById('telefono').value = '';
             document.getElementById('voto-select').value = 'NC';
-            // Use cached data - no extra Supabase call
             const d = window._votosData && window._votosData[loteId];
             if (d) {
                 if (d.nombre)   document.getElementById('nombre').value   = d.nombre;
