@@ -300,6 +300,30 @@
 
         function escucharClicks() {
             document.querySelectorAll('#map-inner path').forEach(p => {
+
+                // Highlight immediately on touch/click (pointerdown fires before click)
+                p.addEventListener('pointerdown', (e) => {
+                    // Don't stop propagation - pan system needs it
+                    // But do highlight immediately
+                    if (window._selectedPath && window._selectedPath !== p) {
+                        window._selectedPath.style.fill = window._selectedOriginalFill;
+                    }
+                    const currentFill = p.style.fill || '#c8d0d8';
+                    window._selectedPath = p;
+                    window._selectedOriginalFill = currentFill;
+                    p.style.fill = lightenColor(currentFill, 0.45);
+                    // If user drags instead of tapping, restore color
+                    const restore = () => {
+                        if (window._panMoved > 8 && window._selectedPath === p) {
+                            p.style.fill = currentFill;
+                            window._selectedPath = null;
+                            window._selectedOriginalFill = null;
+                        }
+                        window.removeEventListener('pointerup', restore);
+                    };
+                    window.addEventListener('pointerup', restore);
+                });
+
                 p.addEventListener('click', async (e) => {
                     // If the user dragged more than 8px total, treat as pan not click
                     if (window._panMoved > 8) return;
@@ -311,11 +335,7 @@
                     document.getElementById('telefono').value = '';
                     document.getElementById('voto-select').value = 'NC';
 
-                    // Highlight selected polygon (lighten its current color)
-                    const originalFill = p.style.fill || '#c8d0d8';
-                    window._selectedPath = p;
-                    window._selectedOriginalFill = originalFill;
-                    p.style.fill = lightenColor(originalFill, 0.45);
+
 
                     const { data } = await _supabase
                         .from('votos').select('*').eq('lote_id', p.id).maybeSingle();
