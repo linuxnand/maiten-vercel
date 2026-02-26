@@ -91,8 +91,8 @@
         }
         path.lote-from-historial {
             stroke: #f5c400 !important;
-            stroke-width: 3px !important;
-            animation: lote-pulse 1.2s ease-in-out 4;
+            stroke-width: 0.5px !important;
+            animation: lote-pulse 1.2s ease-in-out 3;
         }
 
         /* Banner de referencia */
@@ -575,30 +575,6 @@
 
             // Auto-ocultar banner después de 8 segundos
             setTimeout(() => { banner.style.display = 'none'; }, 8000);
-
-            // Hacer scroll/zoom hacia el lote
-            const svgEl = inner.querySelector('svg');
-            if (!svgEl) return;
-
-            // Obtener la posición del path en coordenadas SVG
-            const pathBBox = path.getBBox();
-            const svgW = parseFloat(svgEl.getAttribute('width'))  || svgEl.viewBox.baseVal.width;
-            const svgH = parseFloat(svgEl.getAttribute('height')) || svgEl.viewBox.baseVal.height;
-
-            // Queremos centrar en (cx, cy) del path con zoom 3x
-            const cx = pathBBox.x + pathBBox.width  / 2;
-            const cy = pathBBox.y + pathBBox.height / 2;
-            const zoom = 3;
-
-            const contW = container.clientWidth;
-            const contH = container.clientHeight;
-
-            const newOx = contW  / 2 - cx * zoom;
-            const newOy = contH  / 2 - cy * zoom;
-
-            inner.style.transition = 'transform 0.7s cubic-bezier(0.25,0.8,0.25,1)';
-            inner.style.transform  = `translate(${newOx}px,${newOy}px) scale(${zoom})`;
-            setTimeout(() => { inner.style.transition = ''; }, 800);
         }
 
         // ── ZOOM + PAN ────────────────────────────────────────────────
