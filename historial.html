@@ -418,7 +418,7 @@
         } else {
             status.style.display = 'none';
             tbody.innerHTML = rows.map(r => `
-                <tr title="Ver lote ${r.lote_id || ''} en el mapa" onclick="verEnMapa(${JSON.stringify(r.lote_id || '')})">
+                <tr data-lote="${r.lote_id || ''}" title="Ver lote ${r.lote_id || ''} en el mapa">
                     <td>${fmtFecha(r.updated_at)}</td>
                     <td class="td-lote">${r.lote_id || '—'}</td>
                     <td class="td-nombre ${r.nombre ? '' : 'empty'}">${r.nombre || 'sin nombre'}</td>
@@ -540,10 +540,14 @@
     // Auto-refresh cada 30 segundos
     setInterval(cargar, 30000);
 
-    window.verEnMapa = function(loteId) {
+    // ── Click en filas → abrir lote en mapa ──────────────────────────
+    document.getElementById('tbody').addEventListener('click', function(e) {
+        const tr = e.target.closest('tr');
+        if (!tr) return;
+        const loteId = tr.dataset.lote;
         if (!loteId) return;
         window.open('index.html?lote=' + encodeURIComponent(loteId), '_blank');
-    };
+    });
 
     cargar();
 </script>
