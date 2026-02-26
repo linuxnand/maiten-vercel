@@ -184,8 +184,12 @@
         tbody tr {
             border-bottom: 1px solid #1e1e1e;
             transition: background 0.1s;
+            cursor: pointer;
         }
-        tbody tr:hover { background: #1a1a1a; }
+        tbody tr:hover { background: #252510; }
+        tbody tr:hover td { color: var(--accent); }
+        tbody tr:hover .td-lote { color: var(--accent); }
+        tbody tr:hover .td-fecha { color: var(--accent); }
 
         tbody td {
             padding: 11px 20px;
@@ -277,6 +281,13 @@
             .td-lote { display: none; }
             #search { width: 150px; }
         }
+        .td-ver {
+            font-size: 1rem;
+            text-align: center;
+            opacity: 0.35;
+            transition: opacity 0.15s;
+        }
+        tbody tr:hover .td-ver { opacity: 1; }
     </style>
 </head>
 <body>
@@ -333,6 +344,7 @@
                 <th data-col="nombre">Nombre</th>
                 <th data-col="telefono">Teléfono</th>
                 <th data-col="voto">Voto</th>
+                <th style="width:40px"></th>
             </tr>
         </thead>
         <tbody id="tbody"></tbody>
@@ -406,12 +418,13 @@
         } else {
             status.style.display = 'none';
             tbody.innerHTML = rows.map(r => `
-                <tr>
+                <tr title="Ver lote ${r.lote_id || ''} en el mapa" onclick="verEnMapa(${JSON.stringify(r.lote_id || '')})">
                     <td>${fmtFecha(r.updated_at)}</td>
                     <td class="td-lote">${r.lote_id || '—'}</td>
                     <td class="td-nombre ${r.nombre ? '' : 'empty'}">${r.nombre || 'sin nombre'}</td>
                     <td class="td-tel ${r.telefono ? '' : 'empty'}">${r.telefono || '—'}</td>
                     <td>${badgeVoto(r.voto)}</td>
+                    <td class="td-ver">🗺</td>
                 </tr>
             `).join('');
         }
@@ -526,6 +539,11 @@
 
     // Auto-refresh cada 30 segundos
     setInterval(cargar, 30000);
+
+    function verEnMapa(loteId) {
+        if (!loteId) return;
+        window.open('index.html?lote=' + encodeURIComponent(loteId), '_blank');
+    }
 
     cargar();
 </script>

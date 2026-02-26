@@ -83,6 +83,37 @@
         .lote-no { fill: #ff4136 !important; }
         .lote-nc { fill: #c8d0d8 !important; }
 
+        /* Lote resaltado desde historial */
+        @keyframes lote-pulse {
+            0%   { filter: drop-shadow(0 0 0px #f5c400); }
+            50%  { filter: drop-shadow(0 0 14px #f5c400) brightness(1.8); }
+            100% { filter: drop-shadow(0 0 0px #f5c400); }
+        }
+        path.lote-from-historial {
+            stroke: #f5c400 !important;
+            stroke-width: 3px !important;
+            animation: lote-pulse 1.2s ease-in-out 4;
+        }
+
+        /* Banner de referencia */
+        #lote-banner {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #f5c400;
+            color: #000;
+            font-weight: 700;
+            font-size: 0.9rem;
+            padding: 10px 20px;
+            border-radius: 8px;
+            z-index: 500;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
         /* ── TOOLTIP ── */
         #tooltip {
             display: none;
@@ -217,6 +248,8 @@
         <div id="map-inner"></div>
     </div>
 
+    <div id="lote-banner" onclick="this.style.display='none'"></div>
+
     <div id="tooltip"></div>
 
     <div class="modal" id="modal">
@@ -293,7 +326,14 @@
                     p.style.fillOpacity = '1';
                 });
                 escucharClicks();
-                cargarVotos();
+                cargarVotos().then(() => {
+                    // ── Resaltar lote si viene de historial ──
+                    const params = new URLSearchParams(window.location.search);
+                    const loteParam = params.get('lote');
+                    if (loteParam) {
+                        destacarLoteDesdeHistorial(loteParam);
+                    }
+                });
                 initZoom();
             })
             .catch(err => { document.getElementById('stats').innerText = '❌ ' + err.message; });
@@ -505,6 +545,60 @@
             if (error) { alert('Error al guardar: ' + error.message); return; }
             cerrarModal();
             cargarVotos();
+        }
+
+        function destacarLoteDesdeHistorial(loteId) {
+            const path = document.getElementById(loteId);
+            if (!path) {
+                // Reintentar en 500ms (el SVG puede no estar listo)
+                setTimeout(() => destacarLoteDesdeHistorial(loteId), 500);
+                return;
+            }
+
+            // Centrar el mapa en el lote
+            const container = document.getElementById('map-container');
+            const inner     = document.getElementById('map-inner');
+            const rect      = path.getBoundingClientRect();
+            const cRect     = container.getBoundingClientRect();
+
+            // Aplicar clase de destaque
+            path.classList.add('lote-from-historial');
+
+            // Mostrar banner
+            const data = window._votosData && window._votosData[loteId];
+            const banner = document.getElementById('lote-banner');
+            banner.innerHTML =
+                '📍 Lote: <b>' + loteId + '</b>' +
+                (data && data.nombre ? ' — ' + data.nombre : '') +
+                '&nbsp;&nbsp;<span style="font-weight:400;font-size:0.8rem">✕ cerrar</span>';
+            banner.style.display = 'block';
+
+            // Auto-ocultar banner después de 8 segundos
+            setTimeout(() => { banner.style.display = 'none'; }, 8000);
+
+            // Hacer scroll/zoom hacia el lote
+            const svgEl = inner.querySelector('svg');
+            if (!svgEl) return;
+
+            // Obtener la posición del path en coordenadas SVG
+            const pathBBox = path.getBBox();
+            const svgW = parseFloat(svgEl.getAttribute('width'))  || svgEl.viewBox.baseVal.width;
+            const svgH = parseFloat(svgEl.getAttribute('height')) || svgEl.viewBox.baseVal.height;
+
+            // Queremos centrar en (cx, cy) del path con zoom 3x
+            const cx = pathBBox.x + pathBBox.width  / 2;
+            const cy = pathBBox.y + pathBBox.height / 2;
+            const zoom = 3;
+
+            const contW = container.clientWidth;
+            const contH = container.clientHeight;
+
+            const newOx = contW  / 2 - cx * zoom;
+            const newOy = contH  / 2 - cy * zoom;
+
+            inner.style.transition = 'transform 0.7s cubic-bezier(0.25,0.8,0.25,1)';
+            inner.style.transform  = `translate(${newOx}px,${newOy}px) scale(${zoom})`;
+            setTimeout(() => { inner.style.transition = ''; }, 800);
         }
 
         // ── ZOOM + PAN ────────────────────────────────────────────────
