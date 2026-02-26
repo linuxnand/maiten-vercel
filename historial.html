@@ -540,10 +540,10 @@
     // Auto-refresh cada 30 segundos
     setInterval(cargar, 30000);
 
-    function verEnMapa(loteId) {
+    window.verEnMapa = function(loteId) {
         if (!loteId) return;
         window.open('index.html?lote=' + encodeURIComponent(loteId), '_blank');
-    }
+    };
 
     cargar();
 </script>
