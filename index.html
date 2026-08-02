@@ -257,6 +257,9 @@
             <div class="field-label">Nombre</div>
             <input type="text" id="nombre" placeholder="Nombre y Apellido">
 
+            <div class="field-label">Dirección</div>
+            <input type="text" id="direccion" placeholder="Calle y número">
+
             <div class="field-label">Teléfono</div>
             <input type="tel" id="telefono" placeholder="Teléfono">
 
@@ -418,6 +421,7 @@
                     const estado = v === 'SI' ? '🟢 SÍ quiere pavimento' : v === 'NO' ? '🔴 NO quiere pavimento' : '⚪ Sin respuesta';
                     tip.innerHTML =
                         'Nombre: <b>' + (data && data.nombre || '—') + '</b><br>' +
+                        'Dirección: <b>' + (data && data.direccion || '—') + '</b><br>' +
                         'Teléfono: <b>' + (data && data.telefono || '—') + '</b><br>' +
                         estado;
                     tip.style.display = 'block';
@@ -462,6 +466,7 @@
                                      : '⚪ Sin respuesta';
                         tip.innerHTML =
                             'Nombre: <b>' + (d && d.nombre   || '—') + '</b><br>' +
+                            'Dirección: <b>' + (d && d.direccion || '—') + '</b><br>' +
                             'Teléfono: <b>' + (d && d.telefono || '—') + '</b><br>' +
                             estado +
                             '<button class="tip-edit-btn" data-lote="' + p.id + '" onclick="abrirModal(this.dataset.lote)">Editar</button>';
@@ -485,14 +490,16 @@
                         // ── PC: abrir modal directo ──
                         highlightPath(p);
                         seleccionado = p.id;
-                        document.getElementById('nombre').value   = '';
-                        document.getElementById('telefono').value = '';
+                        document.getElementById('nombre').value    = '';
+                        document.getElementById('direccion').value = '';
+                        document.getElementById('telefono').value  = '';
                         document.getElementById('voto-select').value = 'NC';
                         const { data } = await _supabase
                             .from('votos').select('*').eq('lote_id', p.id).maybeSingle();
                         if (data) {
-                            if (data.nombre)   document.getElementById('nombre').value   = data.nombre;
-                            if (data.telefono) document.getElementById('telefono').value = data.telefono;
+                            if (data.nombre)    document.getElementById('nombre').value    = data.nombre;
+                            if (data.direccion) document.getElementById('direccion').value = data.direccion;
+                            if (data.telefono)  document.getElementById('telefono').value  = data.telefono;
                             const v = (data.voto || '').toUpperCase();
                             document.getElementById('voto-select').value =
                                 (v === 'SI' || v === 'NO') ? v : 'NC';
@@ -512,13 +519,15 @@
             seleccionado = loteId;
             const p = document.getElementById(loteId);
             if (p) highlightPath(p);
-            document.getElementById('nombre').value   = '';
-            document.getElementById('telefono').value = '';
+            document.getElementById('nombre').value    = '';
+            document.getElementById('direccion').value = '';
+            document.getElementById('telefono').value  = '';
             document.getElementById('voto-select').value = 'NC';
             const d = window._votosData && window._votosData[loteId];
             if (d) {
-                if (d.nombre)   document.getElementById('nombre').value   = d.nombre;
-                if (d.telefono) document.getElementById('telefono').value = d.telefono;
+                if (d.nombre)    document.getElementById('nombre').value    = d.nombre;
+                if (d.direccion) document.getElementById('direccion').value = d.direccion;
+                if (d.telefono)  document.getElementById('telefono').value  = d.telefono;
                 const v = (d.voto || '').toUpperCase();
                 document.getElementById('voto-select').value = (v === 'SI' || v === 'NO') ? v : 'NC';
             }
@@ -534,12 +543,13 @@
         }
 
         async function guardar() {
-            const nombre = document.getElementById('nombre').value.trim();
-            const tel    = document.getElementById('telefono').value.trim();
-            const valor  = document.getElementById('voto-select').value;
+            const nombre    = document.getElementById('nombre').value.trim();
+            const direccion = document.getElementById('direccion').value.trim();
+            const tel       = document.getElementById('telefono').value.trim();
+            const valor     = document.getElementById('voto-select').value;
 
             const { error } = await _supabase.from('votos').upsert(
-                { lote_id: seleccionado, nombre, telefono: tel, voto: valor },
+                { lote_id: seleccionado, nombre, direccion, telefono: tel, voto: valor },
                 { onConflict: 'lote_id' }
             );
             if (error) { alert('Error al guardar: ' + error.message); return; }

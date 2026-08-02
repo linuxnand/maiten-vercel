@@ -231,6 +231,10 @@
         .td-nombre { font-weight: 500; }
         .td-nombre.empty { color: var(--muted); font-style: italic; font-weight: 400; }
 
+        /* Dirección */
+        .td-dir { font-size: 0.85rem; }
+        .td-dir.empty { color: var(--muted); font-style: italic; }
+
         /* Teléfono */
         .td-tel { font-family: 'IBM Plex Mono', monospace; font-size: 0.82rem; }
         .td-tel.empty { color: var(--muted); font-style: italic; }
@@ -279,6 +283,7 @@
         @media (max-width: 600px) {
             thead th, tbody td { padding: 10px 12px; }
             .td-lote { display: none; }
+            .td-dir  { display: none; }
             #search { width: 150px; }
         }
         .td-ver {
@@ -325,7 +330,7 @@
 </div>
 
 <div id="controls">
-    <input type="text" id="search" placeholder="Buscar nombre o lote…">
+    <input type="text" id="search" placeholder="Buscar nombre, dirección o lote…">
     <button class="filter-btn active-all" data-filter="all">Todos</button>
     <button class="filter-btn" data-filter="SI">✓ SÍ</button>
     <button class="filter-btn" data-filter="NO">✗ NO</button>
@@ -342,6 +347,7 @@
                 <th data-col="updated_at" class="sorted">Fecha <span id="sort-arrow">↓</span></th>
                 <th data-col="lote_id">Lote</th>
                 <th data-col="nombre">Nombre</th>
+                <th data-col="direccion">Dirección</th>
                 <th data-col="telefono">Teléfono</th>
                 <th data-col="voto">Voto</th>
                 <th style="width:40px"></th>
@@ -391,9 +397,10 @@
         if (searchQ) {
             const q = searchQ.toLowerCase();
             rows = rows.filter(r =>
-                (r.nombre   || '').toLowerCase().includes(q) ||
-                (r.lote_id  || '').toLowerCase().includes(q) ||
-                (r.telefono || '').toLowerCase().includes(q)
+                (r.nombre    || '').toLowerCase().includes(q) ||
+                (r.direccion || '').toLowerCase().includes(q) ||
+                (r.lote_id   || '').toLowerCase().includes(q) ||
+                (r.telefono  || '').toLowerCase().includes(q)
             );
         }
 
@@ -422,6 +429,7 @@
                     <td>${fmtFecha(r.updated_at)}</td>
                     <td class="td-lote">${r.lote_id || '—'}</td>
                     <td class="td-nombre ${r.nombre ? '' : 'empty'}">${r.nombre || 'sin nombre'}</td>
+                    <td class="td-dir ${r.direccion ? '' : 'empty'}">${r.direccion || '—'}</td>
                     <td class="td-tel ${r.telefono ? '' : 'empty'}">${r.telefono || '—'}</td>
                     <td>${badgeVoto(r.voto)}</td>
                     <td class="td-ver">🗺</td>
@@ -447,8 +455,8 @@
         if (allData.length === 0) { alert('No hay datos para exportar.'); return; }
 
         // Mismo orden que el CSV original para reimportar a Supabase sin problemas
-        const cols = ['nombre', 'telefono', 'voto', 'lote_id', 'updated_at'];
-        const headers = ['nombre', 'telefono', 'voto', 'lote_id', 'updated_at'];
+        const cols = ['nombre', 'direccion', 'telefono', 'voto', 'lote_id', 'updated_at'];
+        const headers = ['nombre', 'direccion', 'telefono', 'voto', 'lote_id', 'updated_at'];
 
         const escape = v => {
             if (v == null) return '';
