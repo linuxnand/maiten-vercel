@@ -126,7 +126,9 @@
             line-height: 1.5;
             pointer-events: none;
             z-index: 999;
-            max-width: 220px;
+            width: max-content;
+            max-width: 264px;
+            white-space: nowrap;
             box-shadow: 0 2px 8px rgba(0,0,0,0.4);
         }
 
@@ -135,6 +137,7 @@
             pointer-events: auto;
             max-width: 260px;
             width: 260px;
+            white-space: normal;
         }
         #tooltip.mobile-tip:not(:has(.tip-edit-btn:hover)) {
             /* allow taps on tooltip area to propagate for closing */
